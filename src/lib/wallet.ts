@@ -25,7 +25,15 @@ export function deriveAddress(mnemonic: string): string {
 
 function getProvider(chain: ChainKey): ethers.JsonRpcProvider {
   if (!providerCache[chain]) {
-    providerCache[chain] = new ethers.JsonRpcProvider(CHAINS[chain].rpcUrl, CHAINS[chain].chainId);
+    // batchMaxCount: 1 disables JSON-RPC request batching — several public
+    // RPC endpoints reject or mishandle batched ("[...]") request bodies.
+    // staticNetwork skips the extra eth_chainId call ethers otherwise makes
+    // to verify the network on every provider use.
+    providerCache[chain] = new ethers.JsonRpcProvider(
+      CHAINS[chain].rpcUrl,
+      CHAINS[chain].chainId,
+      { batchMaxCount: 1, staticNetwork: ethers.Network.from(CHAINS[chain].chainId) }
+    );
   }
   return providerCache[chain]!;
 }

@@ -33,7 +33,8 @@ export default function HomeScreen({ navigation }: Props) {
         try {
           const balance = await getBalance(address, chain.key);
           return [chain.key, balance] as const;
-        } catch {
+        } catch (e) {
+          console.warn(`Failed to fetch ${chain.name} balance:`, e);
           return [chain.key, 'error'] as const;
         }
       })
