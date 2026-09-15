@@ -4,10 +4,13 @@ import * as Clipboard from 'expo-clipboard';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { generateMnemonic } from '../lib/wallet';
+import { useTheme, ThemeColors } from '../context/ThemeContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CreateWallet'>;
 
 export default function CreateWalletScreen({ navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [mnemonic] = useState(() => generateMnemonic());
   const [revealed, setRevealed] = useState(false);
   const words = mnemonic.split(' ');
@@ -59,43 +62,45 @@ export default function CreateWalletScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B0E17' },
-  scroll: { padding: 24 },
-  title: { fontSize: 24, fontWeight: '700', color: '#fff', marginBottom: 12 },
-  warning: { fontSize: 14, color: '#F0B90B', marginBottom: 24, lineHeight: 20 },
-  revealBox: {
-    height: 180,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#2A2F3D',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#151A26',
-  },
-  revealText: { color: '#9AA3B2', fontSize: 16 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  wordChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#151A26',
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    width: '47%',
-    gap: 8,
-  },
-  wordIndex: { color: '#627EEA', fontSize: 12, width: 16 },
-  wordText: { color: '#fff', fontSize: 15, fontWeight: '500' },
-  copyButton: { marginTop: 20, alignSelf: 'center' },
-  copyButtonText: { color: '#627EEA', fontSize: 15, fontWeight: '600' },
-  continueButton: {
-    backgroundColor: '#627EEA',
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
-    margin: 24,
-  },
-  disabledButton: { opacity: 0.4 },
-  continueButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    scroll: { padding: 24 },
+    title: { fontSize: 24, fontWeight: '700', color: colors.textPrimary, marginBottom: 12 },
+    warning: { fontSize: 14, color: colors.warning, marginBottom: 24, lineHeight: 20 },
+    revealBox: {
+      height: 180,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surface,
+    },
+    revealText: { color: colors.textSecondary, fontSize: 16 },
+    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    wordChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      borderRadius: 10,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      width: '47%',
+      gap: 8,
+    },
+    wordIndex: { color: colors.primary, fontSize: 12, width: 16 },
+    wordText: { color: colors.textPrimary, fontSize: 15, fontWeight: '500' },
+    copyButton: { marginTop: 20, alignSelf: 'center' },
+    copyButtonText: { color: colors.primary, fontSize: 15, fontWeight: '600' },
+    continueButton: {
+      backgroundColor: colors.primary,
+      borderRadius: 14,
+      paddingVertical: 16,
+      alignItems: 'center',
+      margin: 24,
+    },
+    disabledButton: { opacity: 0.4 },
+    continueButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  });
+}

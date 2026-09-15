@@ -46,6 +46,15 @@ and ethers.js — the same core approach used by wallets like Trust Wallet.
   with its balance and recent transactions, tap any row to open it on a block
   explorer — Bitcoin via Blockstream, Tron via TronGrid, EVM via the relevant
   Etherscan-family API (`src/lib/evmHistory.ts`)
+- **Live USD/INR pricing**: native-coin balances show their fiat value
+  (CoinGecko, mainnet only — testnet coins have no real price) —
+  `src/lib/priceService.ts`
+- **Dark/light theme**: a toggle on the home screen switches themes instantly,
+  persisted across launches — `src/context/ThemeContext.tsx` provides the
+  palette every screen reads from
+- **Skeleton loading states**: balances and transaction history show animated
+  placeholder shapes while loading instead of a bare "..." —
+  `src/components/SkeletonBox.tsx`
 
 ## What's out of scope for this MVP
 
@@ -82,8 +91,12 @@ src/
     pin.ts          # PIN hashing/verification
     pinAuth.ts      # PIN check with failed-attempt lockout, shared by unlock + send
     biometrics.ts   # Face ID / fingerprint helpers (expo-local-authentication)
+    priceService.ts # CoinGecko fiat price lookup for native coins
   context/
     WalletContext.tsx  # app-wide wallet state (locked/unlocked, address, mnemonic)
+    ThemeContext.tsx   # dark/light palette + toggle, persisted via SecureStore
+  components/
+    SkeletonBox.tsx    # animated loading placeholder used across screens
   screens/        # onboarding, home, send, receive, add-token, scan-qr,
                   # asset-history screens
   navigation/      # stack navigator wiring

@@ -1,9 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity } from 'react-native';
 import { useWallet } from '../context/WalletContext';
+import { useTheme, ThemeColors } from '../context/ThemeContext';
 import { isBiometricAvailable } from '../lib/biometrics';
 
 export default function UnlockScreen() {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const { unlock, unlockWithBiometrics } = useWallet();
   const [pin, setPin] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -48,7 +51,7 @@ export default function UnlockScreen() {
         value={pin}
         onChangeText={setPin}
         placeholder="PIN"
-        placeholderTextColor="#5A6172"
+        placeholderTextColor={colors.textMuted}
         secureTextEntry
         keyboardType="number-pad"
         autoFocus
@@ -67,30 +70,32 @@ export default function UnlockScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B0E17', padding: 24, justifyContent: 'center' },
-  logo: { fontSize: 48, color: '#627EEA', textAlign: 'center', marginBottom: 12 },
-  title: { fontSize: 22, fontWeight: '700', color: '#fff', textAlign: 'center', marginBottom: 24 },
-  input: {
-    backgroundColor: '#151A26',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#2A2F3D',
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    color: '#fff',
-    fontSize: 18,
-    marginBottom: 16,
-    textAlign: 'center',
-    letterSpacing: 4,
-  },
-  button: {
-    backgroundColor: '#627EEA',
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  biometricButton: { marginTop: 16, alignItems: 'center' },
-  biometricButtonText: { color: '#627EEA', fontSize: 14, fontWeight: '600' },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background, padding: 24, justifyContent: 'center' },
+    logo: { fontSize: 48, color: colors.primary, textAlign: 'center', marginBottom: 12 },
+    title: { fontSize: 22, fontWeight: '700', color: colors.textPrimary, textAlign: 'center', marginBottom: 24 },
+    input: {
+      backgroundColor: colors.surface,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 14,
+      paddingVertical: 14,
+      color: colors.textPrimary,
+      fontSize: 18,
+      marginBottom: 16,
+      textAlign: 'center',
+      letterSpacing: 4,
+    },
+    button: {
+      backgroundColor: colors.primary,
+      borderRadius: 14,
+      paddingVertical: 16,
+      alignItems: 'center',
+    },
+    buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+    biometricButton: { marginTop: 16, alignItems: 'center' },
+    biometricButtonText: { color: colors.primary, fontSize: 14, fontWeight: '600' },
+  });
+}

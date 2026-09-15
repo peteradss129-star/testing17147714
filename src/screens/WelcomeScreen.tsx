@@ -2,10 +2,14 @@ import React from 'react';
 import { SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootNavigator';
+import { useTheme, ThemeColors } from '../context/ThemeContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Welcome'>;
 
 export default function WelcomeScreen({ navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.center}>
@@ -31,15 +35,17 @@ export default function WelcomeScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B0E17', justifyContent: 'space-between', padding: 24 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  logo: { fontSize: 64, color: '#627EEA', marginBottom: 12 },
-  title: { fontSize: 32, fontWeight: '700', color: '#fff', marginBottom: 8 },
-  subtitle: { fontSize: 15, color: '#9AA3B2', textAlign: 'center', paddingHorizontal: 20 },
-  buttons: { gap: 12, marginBottom: 24 },
-  primaryButton: { backgroundColor: '#627EEA', borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
-  primaryButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  secondaryButton: { borderColor: '#2A2F3D', borderWidth: 1, borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
-  secondaryButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background, justifyContent: 'space-between', padding: 24 },
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    logo: { fontSize: 64, color: colors.primary, marginBottom: 12 },
+    title: { fontSize: 32, fontWeight: '700', color: colors.textPrimary, marginBottom: 8 },
+    subtitle: { fontSize: 15, color: colors.textSecondary, textAlign: 'center', paddingHorizontal: 20 },
+    buttons: { gap: 12, marginBottom: 24 },
+    primaryButton: { backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
+    primaryButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+    secondaryButton: { borderColor: colors.border, borderWidth: 1, borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
+    secondaryButtonText: { color: colors.textPrimary, fontSize: 16, fontWeight: '600' },
+  });
+}

@@ -3,10 +3,13 @@ import { Alert, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity } fr
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useWallet } from '../context/WalletContext';
+import { useTheme, ThemeColors } from '../context/ThemeContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SetPin'>;
 
 export default function SetPinScreen({ route, navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const { mnemonic } = route.params;
   const { createWallet } = useWallet();
   const [pin, setPin] = useState('');
@@ -46,7 +49,7 @@ export default function SetPinScreen({ route, navigation }: Props) {
         value={pin}
         onChangeText={setPin}
         placeholder="Enter PIN"
-        placeholderTextColor="#5A6172"
+        placeholderTextColor={colors.textMuted}
         secureTextEntry
         keyboardType="number-pad"
       />
@@ -55,7 +58,7 @@ export default function SetPinScreen({ route, navigation }: Props) {
         value={confirmPin}
         onChangeText={setConfirmPin}
         placeholder="Confirm PIN"
-        placeholderTextColor="#5A6172"
+        placeholderTextColor={colors.textMuted}
         secureTextEntry
         keyboardType="number-pad"
       />
@@ -67,28 +70,30 @@ export default function SetPinScreen({ route, navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B0E17', padding: 24 },
-  title: { fontSize: 24, fontWeight: '700', color: '#fff', marginBottom: 8 },
-  subtitle: { fontSize: 14, color: '#9AA3B2', marginBottom: 24, lineHeight: 20 },
-  input: {
-    backgroundColor: '#151A26',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#2A2F3D',
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    color: '#fff',
-    fontSize: 18,
-    marginBottom: 14,
-    letterSpacing: 4,
-  },
-  button: {
-    backgroundColor: '#627EEA',
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background, padding: 24 },
+    title: { fontSize: 24, fontWeight: '700', color: colors.textPrimary, marginBottom: 8 },
+    subtitle: { fontSize: 14, color: colors.textSecondary, marginBottom: 24, lineHeight: 20 },
+    input: {
+      backgroundColor: colors.surface,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 14,
+      paddingVertical: 14,
+      color: colors.textPrimary,
+      fontSize: 18,
+      marginBottom: 14,
+      letterSpacing: 4,
+    },
+    button: {
+      backgroundColor: colors.primary,
+      borderRadius: 14,
+      paddingVertical: 16,
+      alignItems: 'center',
+      marginTop: 12,
+    },
+    buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  });
+}

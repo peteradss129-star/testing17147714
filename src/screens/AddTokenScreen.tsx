@@ -5,10 +5,13 @@ import type { RootStackParamList } from '../navigation/RootNavigator';
 import { CHAINS, MAINNET_CHAIN_LIST, TESTNET_CHAIN_LIST, ChainKey } from '../lib/chains';
 import * as chainService from '../lib/chainService';
 import { addStoredToken } from '../lib/tokenStorage';
+import { useTheme, ThemeColors } from '../context/ThemeContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AddToken'>;
 
 export default function AddTokenScreen({ route, navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const isTestnet = route.params?.isTestnet ?? true;
   const chainList = (isTestnet ? TESTNET_CHAIN_LIST : MAINNET_CHAIN_LIST).filter(chainService.chainSupportsTokens);
   const [chain, setChain] = useState<ChainKey>(route.params?.defaultChain ?? chainList[0].key);
@@ -75,7 +78,7 @@ export default function AddTokenScreen({ route, navigation }: Props) {
           setMetadata(null);
         }}
         placeholder={CHAINS[chain].family === 'tron' ? 'T...' : '0x...'}
-        placeholderTextColor="#5A6172"
+        placeholderTextColor={colors.textMuted}
         autoCapitalize="none"
         autoCorrect={false}
       />
@@ -104,60 +107,62 @@ export default function AddTokenScreen({ route, navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B0E17', padding: 24 },
-  title: { fontSize: 24, fontWeight: '700', color: '#fff', marginBottom: 8 },
-  subtitle: { fontSize: 13, color: '#9AA3B2', marginBottom: 24, lineHeight: 18 },
-  label: { color: '#9AA3B2', fontSize: 13, marginBottom: 8 },
-  chainSelector: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-  chainOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#151A26',
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: '#2A2F3D',
-    gap: 6,
-  },
-  chainOptionActive: { borderColor: '#627EEA' },
-  chainOptionText: { color: '#fff', fontSize: 13, fontWeight: '600' },
-  chainDot: { width: 8, height: 8, borderRadius: 4 },
-  input: {
-    backgroundColor: '#151A26',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#2A2F3D',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    color: '#fff',
-    fontSize: 16,
-    marginBottom: 16,
-  },
-  secondaryButton: {
-    borderColor: '#2A2F3D',
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  secondaryButtonText: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  metaCard: {
-    backgroundColor: '#151A26',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-  },
-  metaName: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  metaDetail: { color: '#9AA3B2', fontSize: 12, marginTop: 4 },
-  button: {
-    backgroundColor: '#627EEA',
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  disabledButton: { opacity: 0.4 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background, padding: 24 },
+    title: { fontSize: 24, fontWeight: '700', color: colors.textPrimary, marginBottom: 8 },
+    subtitle: { fontSize: 13, color: colors.textSecondary, marginBottom: 24, lineHeight: 18 },
+    label: { color: colors.textSecondary, fontSize: 13, marginBottom: 8 },
+    chainSelector: { flexDirection: 'row', gap: 10, marginBottom: 20 },
+    chainOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      borderRadius: 10,
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+      gap: 6,
+    },
+    chainOptionActive: { borderColor: colors.primary },
+    chainOptionText: { color: colors.textPrimary, fontSize: 13, fontWeight: '600' },
+    chainDot: { width: 8, height: 8, borderRadius: 4 },
+    input: {
+      backgroundColor: colors.surface,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      color: colors.textPrimary,
+      fontSize: 16,
+      marginBottom: 16,
+    },
+    secondaryButton: {
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: 14,
+      paddingVertical: 14,
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    secondaryButtonText: { color: colors.textPrimary, fontSize: 15, fontWeight: '600' },
+    metaCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 20,
+    },
+    metaName: { color: colors.textPrimary, fontSize: 15, fontWeight: '600' },
+    metaDetail: { color: colors.textSecondary, fontSize: 12, marginTop: 4 },
+    button: {
+      backgroundColor: colors.primary,
+      borderRadius: 14,
+      paddingVertical: 16,
+      alignItems: 'center',
+    },
+    disabledButton: { opacity: 0.4 },
+    buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  });
+}

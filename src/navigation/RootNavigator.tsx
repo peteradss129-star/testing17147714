@@ -1,8 +1,9 @@
 import React from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { NavigationContainer, DarkTheme } from '@react-navigation/native';
+import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useWallet } from '../context/WalletContext';
+import { useTheme } from '../context/ThemeContext';
 import { ChainKey } from '../lib/chains';
 import WelcomeScreen from '../screens/WelcomeScreen';
 import CreateWalletScreen from '../screens/CreateWalletScreen';
@@ -35,25 +36,32 @@ export type RootStackParamList = {
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-const navTheme = {
-  ...DarkTheme,
-  colors: { ...DarkTheme.colors, background: '#0B0E17', card: '#0B0E17' },
-};
-
 export default function RootNavigator() {
   const { isLoading, hasWallet, isUnlocked } = useWallet();
+  const { mode, colors } = useTheme();
+
+  const navTheme = {
+    ...(mode === 'dark' ? DarkTheme : DefaultTheme),
+    colors: {
+      ...(mode === 'dark' ? DarkTheme.colors : DefaultTheme.colors),
+      background: colors.background,
+      card: colors.background,
+    },
+  };
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#0B0E17', alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color="#627EEA" size="large" />
+      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={colors.primary} size="large" />
       </View>
     );
   }
 
   return (
     <NavigationContainer theme={navTheme}>
-      <Stack.Navigator screenOptions={{ headerStyle: { backgroundColor: '#0B0E17' }, headerTintColor: '#fff' }}>
+      <Stack.Navigator
+        screenOptions={{ headerStyle: { backgroundColor: colors.background }, headerTintColor: colors.textPrimary }}
+      >
         {!hasWallet ? (
           <>
             <Stack.Screen name="Welcome" component={WelcomeScreen} options={{ headerShown: false }} />
@@ -70,7 +78,11 @@ export default function RootNavigator() {
             <Stack.Screen name="Receive" component={ReceiveScreen} options={{ title: '' }} />
             <Stack.Screen name="Send" component={SendScreen} options={{ title: '' }} />
             <Stack.Screen name="AddToken" component={AddTokenScreen} options={{ title: '' }} />
-            <Stack.Screen name="ScanQR" component={ScanQRScreen} options={{ title: 'Scan QR code', headerTintColor: '#fff' }} />
+            <Stack.Screen
+              name="ScanQR"
+              component={ScanQRScreen}
+              options={{ title: 'Scan QR code', headerStyle: { backgroundColor: '#000' }, headerTintColor: '#fff' }}
+            />
             <Stack.Screen name="AssetHistory" component={AssetHistoryScreen} options={{ title: '' }} />
           </>
         )}

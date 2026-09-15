@@ -3,10 +3,13 @@ import { Alert, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity } fr
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { isValidMnemonic } from '../lib/wallet';
+import { useTheme, ThemeColors } from '../context/ThemeContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ImportWallet'>;
 
 export default function ImportWalletScreen({ navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [input, setInput] = useState('');
 
   const handleContinue = () => {
@@ -28,7 +31,7 @@ export default function ImportWalletScreen({ navigation }: Props) {
         value={input}
         onChangeText={setInput}
         placeholder="word1 word2 word3 ..."
-        placeholderTextColor="#5A6172"
+        placeholderTextColor={colors.textMuted}
         multiline
         numberOfLines={4}
         autoCapitalize="none"
@@ -42,28 +45,30 @@ export default function ImportWalletScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B0E17', padding: 24 },
-  title: { fontSize: 24, fontWeight: '700', color: '#fff', marginBottom: 8 },
-  subtitle: { fontSize: 14, color: '#9AA3B2', marginBottom: 24 },
-  input: {
-    backgroundColor: '#151A26',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#2A2F3D',
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    color: '#fff',
-    fontSize: 16,
-    minHeight: 120,
-    textAlignVertical: 'top',
-    marginBottom: 24,
-  },
-  button: {
-    backgroundColor: '#627EEA',
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background, padding: 24 },
+    title: { fontSize: 24, fontWeight: '700', color: colors.textPrimary, marginBottom: 8 },
+    subtitle: { fontSize: 14, color: colors.textSecondary, marginBottom: 24 },
+    input: {
+      backgroundColor: colors.surface,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 14,
+      paddingVertical: 14,
+      color: colors.textPrimary,
+      fontSize: 16,
+      minHeight: 120,
+      textAlignVertical: 'top',
+      marginBottom: 24,
+    },
+    button: {
+      backgroundColor: colors.primary,
+      borderRadius: 14,
+      paddingVertical: 16,
+      alignItems: 'center',
+    },
+    buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  });
+}

@@ -16,6 +16,9 @@ import { useWallet } from '../context/WalletContext';
 import { CHAINS } from '../lib/chains';
 import * as chainService from '../lib/chainService';
 import { getTokensForChain, StoredToken } from '../lib/tokenStorage';
+import { getNativePrices, formatFiat, PriceInfo } from '../lib/priceService';
+import SkeletonBox from '../components/SkeletonBox';
+import { useTheme, ThemeColors } from '../context/ThemeContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AssetHistory'>;
 
@@ -35,6 +38,8 @@ function shortAddress(address?: string): string {
 }
 
 export default function AssetHistoryScreen({ route, navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const { mnemonic } = useWallet();
   const { chainKey, isTestnet, tokenAddress } = route.params;
   const chain = CHAINS[chainKey];
@@ -42,6 +47,7 @@ export default function AssetHistoryScreen({ route, navigation }: Props) {
   const [token, setToken] = useState<StoredToken | null>(null);
   const [address, setAddress] = useState<string | null>(null);
   const [balance, setBalance] = useState<string | null>(null);
+  const [price, setPrice] = useState<PriceInfo | null>(null);
   const [history, setHistory] = useState<chainService.TxHistoryItem[] | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -68,6 +74,19 @@ export default function AssetHistoryScreen({ route, navigation }: Props) {
       setBalance(bal);
     } catch {
       setBalance(null);
+    }
+
+    // Pricing only applies to native coins on mainnet — testnet coins and
+    // custom tokens have no reliable market price here.
+    if (!resolvedToken && !isTestnet) {
+      try {
+        const prices = await getNativePrices();
+        setPrice(prices[chainKey] ?? null);
+      } catch {
+        setPrice(null);
+      }
+    } else {
+      setPrice(null);
     }
 
     setHistoryError(null);
@@ -100,19 +119,34 @@ export default function AssetHistoryScreen({ route, navigation }: Props) {
     <SafeAreaView style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.scroll}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#fff" />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.textPrimary} />
+        }
       >
         <View style={styles.header}>
-          <View style={[styles.dot, { backgroundColor: token ? '#5A6172' : chain.color }]} />
+          <View style={[styles.dot, { backgroundColor: token ? colors.textMuted : chain.color }]} />
           <View>
             <Text style={styles.name}>{name}</Text>
             <Text style={styles.symbol}>{symbol}</Text>
           </View>
         </View>
 
-        <Text style={styles.balance}>
-          {balance === null ? '...' : `${Number(balance).toFixed(token ? 4 : 5)} ${symbol}`}
-        </Text>
+        <View style={styles.balanceBlock}>
+          {balance === null ? (
+            <SkeletonBox width={160} height={32} />
+          ) : (
+            <>
+              <Text style={styles.balance}>
+                {Number(balance).toFixed(token ? 4 : 5)} {symbol}
+              </Text>
+              {price && (
+                <Text style={styles.fiat}>
+                  {formatFiat(Number(balance) * price.usd, 'usd')} · {formatFiat(Number(balance) * price.inr, 'inr')}
+                </Text>
+              )}
+            </>
+          )}
+        </View>
 
         <View style={styles.actions}>
           <TouchableOpacity
@@ -133,7 +167,18 @@ export default function AssetHistoryScreen({ route, navigation }: Props) {
 
         {historyError && <Text style={styles.errorText}>{historyError}</Text>}
 
-        {history === null && !historyError && <Text style={styles.emptyText}>Loading...</Text>}
+        {history === null &&
+          !historyError &&
+          [0, 1, 2].map((i) => (
+            <View key={i} style={styles.txRow}>
+              <SkeletonBox width={32} height={32} style={{ borderRadius: 16 }} />
+              <View style={styles.txInfo}>
+                <SkeletonBox width={120} height={14} />
+                <SkeletonBox width={80} height={11} style={{ marginTop: 6 }} />
+              </View>
+              <SkeletonBox width={70} height={14} />
+            </View>
+          ))}
 
         {history !== null && history.length === 0 && (
           <Text style={styles.emptyText}>No transactions found for this address yet.</Text>
@@ -148,10 +193,10 @@ export default function AssetHistoryScreen({ route, navigation }: Props) {
             <View
               style={[
                 styles.txDirection,
-                { backgroundColor: tx.direction === 'out' ? '#E5484D22' : '#3DD68C22' },
+                { backgroundColor: tx.direction === 'out' ? colors.danger + '22' : colors.success + '22' },
               ]}
             >
-              <Text style={[styles.txDirectionText, { color: tx.direction === 'out' ? '#E5484D' : '#3DD68C' }]}>
+              <Text style={[styles.txDirectionText, { color: tx.direction === 'out' ? colors.danger : colors.success }]}>
                 {tx.direction === 'out' ? '↑' : '↓'}
               </Text>
             </View>
@@ -165,7 +210,7 @@ export default function AssetHistoryScreen({ route, navigation }: Props) {
                 {!tx.confirmed ? ' · pending' : ''}
               </Text>
             </View>
-            <Text style={[styles.txAmount, { color: tx.direction === 'out' ? '#E5484D' : '#3DD68C' }]}>
+            <Text style={[styles.txAmount, { color: tx.direction === 'out' ? colors.danger : colors.success }]}>
               {tx.direction === 'out' ? '-' : '+'}
               {Number(tx.amount).toFixed(token ? 4 : 6)} {symbol}
             </Text>
@@ -176,41 +221,45 @@ export default function AssetHistoryScreen({ route, navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B0E17' },
-  scroll: { padding: 24 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
-  dot: { width: 14, height: 14, borderRadius: 7 },
-  name: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  symbol: { color: '#9AA3B2', fontSize: 12, marginTop: 2 },
-  balance: { color: '#fff', fontSize: 32, fontWeight: '700', marginTop: 12, marginBottom: 24 },
-  actions: { flexDirection: 'row', gap: 12, marginBottom: 32 },
-  actionButton: {
-    flex: 1,
-    backgroundColor: '#151A26',
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#2A2F3D',
-  },
-  actionButtonText: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  sectionTitle: { color: '#9AA3B2', fontSize: 13, fontWeight: '600', marginBottom: 12, textTransform: 'uppercase' },
-  errorText: { color: '#E5484D', fontSize: 13, marginBottom: 12, lineHeight: 18 },
-  emptyText: { color: '#5A6172', fontSize: 13 },
-  txRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#151A26',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 10,
-    gap: 12,
-  },
-  txDirection: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  txDirectionText: { fontSize: 16, fontWeight: '700' },
-  txInfo: { flex: 1 },
-  txCounterparty: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  txDate: { color: '#9AA3B2', fontSize: 12, marginTop: 2 },
-  txAmount: { fontSize: 14, fontWeight: '600' },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    scroll: { padding: 24 },
+    header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
+    dot: { width: 14, height: 14, borderRadius: 7 },
+    name: { color: colors.textPrimary, fontSize: 16, fontWeight: '600' },
+    symbol: { color: colors.textSecondary, fontSize: 12, marginTop: 2 },
+    balanceBlock: { marginTop: 12, marginBottom: 24 },
+    balance: { color: colors.textPrimary, fontSize: 32, fontWeight: '700' },
+    fiat: { color: colors.textSecondary, fontSize: 14, marginTop: 4 },
+    actions: { flexDirection: 'row', gap: 12, marginBottom: 32 },
+    actionButton: {
+      flex: 1,
+      backgroundColor: colors.surface,
+      borderRadius: 14,
+      paddingVertical: 16,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    actionButtonText: { color: colors.textPrimary, fontSize: 15, fontWeight: '600' },
+    sectionTitle: { color: colors.textSecondary, fontSize: 13, fontWeight: '600', marginBottom: 12, textTransform: 'uppercase' },
+    errorText: { color: colors.danger, fontSize: 13, marginBottom: 12, lineHeight: 18 },
+    emptyText: { color: colors.textMuted, fontSize: 13 },
+    txRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      borderRadius: 14,
+      padding: 14,
+      marginBottom: 10,
+      gap: 12,
+    },
+    txDirection: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+    txDirectionText: { fontSize: 16, fontWeight: '700' },
+    txInfo: { flex: 1 },
+    txCounterparty: { color: colors.textPrimary, fontSize: 14, fontWeight: '600' },
+    txDate: { color: colors.textSecondary, fontSize: 12, marginTop: 2 },
+    txAmount: { fontSize: 14, fontWeight: '600' },
+  });
+}

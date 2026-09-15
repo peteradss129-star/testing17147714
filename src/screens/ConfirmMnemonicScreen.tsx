@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Alert, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootNavigator';
+import { useTheme, ThemeColors } from '../context/ThemeContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ConfirmMnemonic'>;
 
@@ -14,6 +15,8 @@ function pickCheckIndices(total: number, count: number): number[] {
 }
 
 export default function ConfirmMnemonicScreen({ route, navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const { mnemonic } = route.params;
   const words = useMemo(() => mnemonic.split(' '), [mnemonic]);
   const checkIndices = useMemo(() => pickCheckIndices(words.length, 3), [words.length]);
@@ -45,7 +48,7 @@ export default function ConfirmMnemonicScreen({ route, navigation }: Props) {
             autoCapitalize="none"
             autoCorrect={false}
             placeholder="word"
-            placeholderTextColor="#5A6172"
+            placeholderTextColor={colors.textMuted}
           />
         </View>
       ))}
@@ -57,28 +60,30 @@ export default function ConfirmMnemonicScreen({ route, navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B0E17', padding: 24 },
-  title: { fontSize: 24, fontWeight: '700', color: '#fff', marginBottom: 8 },
-  subtitle: { fontSize: 14, color: '#9AA3B2', marginBottom: 24 },
-  field: { marginBottom: 16 },
-  label: { color: '#9AA3B2', fontSize: 13, marginBottom: 6 },
-  input: {
-    backgroundColor: '#151A26',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#2A2F3D',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    color: '#fff',
-    fontSize: 16,
-  },
-  button: {
-    backgroundColor: '#627EEA',
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background, padding: 24 },
+    title: { fontSize: 24, fontWeight: '700', color: colors.textPrimary, marginBottom: 8 },
+    subtitle: { fontSize: 14, color: colors.textSecondary, marginBottom: 24 },
+    field: { marginBottom: 16 },
+    label: { color: colors.textSecondary, fontSize: 13, marginBottom: 6 },
+    input: {
+      backgroundColor: colors.surface,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      color: colors.textPrimary,
+      fontSize: 16,
+    },
+    button: {
+      backgroundColor: colors.primary,
+      borderRadius: 14,
+      paddingVertical: 16,
+      alignItems: 'center',
+      marginTop: 12,
+    },
+    buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  });
+}
