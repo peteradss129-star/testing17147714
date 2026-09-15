@@ -51,6 +51,31 @@ export async function sendNative(
   }
 }
 
+// Best-effort fee estimate shown in the send-confirmation dialog, in the
+// chain's native symbol. Bitcoin and Tron estimates require the actual
+// recipient/amount (they depend on UTXO selection / bandwidth-energy
+// accounting), unlike EVM's flat 21000-gas estimate.
+export async function estimateFee(
+  mnemonic: string,
+  chain: ChainConfig,
+  toAddress: string,
+  amount: string,
+  token?: { address: string; decimals: number }
+): Promise<string> {
+  if (chain.family === 'evm' && !token) {
+    return evmWallet.estimateGasFee(chain.key);
+  }
+  if (chain.family === 'bitcoin' && !token) {
+    return btc.estimateBitcoinFee(mnemonic, chain.isTestnet, toAddress, amount);
+  }
+  if (chain.family === 'tron') {
+    return token
+      ? tron.estimateTrc20Fee(mnemonic, chain.isTestnet, token.address, toAddress, amount, token.decimals)
+      : tron.estimateTrxFee(mnemonic, chain.isTestnet, toAddress, amount);
+  }
+  throw new Error('Fee estimate not available for this asset');
+}
+
 export interface TokenMetadata {
   address: string;
   name: string;

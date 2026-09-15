@@ -30,8 +30,11 @@ and ethers.js — the same core approach used by wallets like Trust Wallet.
   PIN as the fallback
 - **Auto-lock on background**: backgrounding the app immediately clears the
   in-memory mnemonic and returns to the lock screen
-- **Transaction confirmation**: before signing, a review step shows the
-  recipient, amount, and network — with a live gas estimate for EVM native sends
+- **Transaction confirmation with real fee estimates**: before signing, a
+  review step shows the recipient, amount, and network, plus a live fee
+  estimate computed per chain family — EVM gas price × 21000, Bitcoin's actual
+  fee from UTXO selection at the current sat/vByte rate, and Tron's bandwidth
+  (+ energy for TRC-20) cost against the account's free/staked resources
 - **Balances**: live native-coin balances per chain via public RPC/API endpoints
 - **Custom tokens (ERC-20 and TRC-20)**: paste any token's contract address to look
   up its symbol/decimals on-chain, track its balance, and send it

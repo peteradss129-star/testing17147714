@@ -44,6 +44,58 @@ function tronHexAddressToBase58(hexAddress: string): string {
   return bs58.encode(full);
 }
 
+interface TronChainParams {
+  bandwidthPriceSun: number;
+  energyPriceSun: number;
+}
+
+async function getChainParameters(base: string): Promise<TronChainParams> {
+  try {
+    const res = await fetch(`${base}/wallet/getchainparameters`);
+    const data = await res.json();
+    const params: { key: string; value?: number }[] = data.chainParameter ?? [];
+    const bandwidthPriceSun = params.find((p) => p.key === 'getTransactionFee')?.value ?? 1000;
+    const energyPriceSun = params.find((p) => p.key === 'getEnergyFee')?.value ?? 420;
+    return { bandwidthPriceSun, energyPriceSun };
+  } catch {
+    // Reasonable, widely-cited defaults if the parameters call fails —
+    // fee estimation degrades gracefully rather than blocking the send.
+    return { bandwidthPriceSun: 1000, energyPriceSun: 420 };
+  }
+}
+
+interface TronAccountResources {
+  availableBandwidth: number;
+  availableEnergy: number;
+}
+
+async function getAccountResources(base: string, address: string): Promise<TronAccountResources> {
+  try {
+    const res = await fetch(`${base}/wallet/getaccountresource`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address: tronAddressToHexPrefixed(address), visible: false }),
+    });
+    const data = await res.json();
+    const freeBandwidth = (data.freeNetLimit ?? 0) - (data.freeNetUsed ?? 0);
+    const stakedBandwidth = (data.NetLimit ?? 0) - (data.NetUsed ?? 0);
+    const energy = (data.EnergyLimit ?? 0) - (data.EnergyUsed ?? 0);
+    return {
+      availableBandwidth: Math.max(0, freeBandwidth) + Math.max(0, stakedBandwidth),
+      availableEnergy: Math.max(0, energy),
+    };
+  } catch {
+    return { availableBandwidth: 0, availableEnergy: 0 };
+  }
+}
+
+// A signed TransferContract/TriggerSmartContract transaction is its
+// raw_data_hex bytes plus one ECDSA signature (65 bytes) and a couple of
+// bytes of list overhead — bandwidth is billed on that total.
+function estimateSignedBytes(rawDataHex: string): number {
+  return rawDataHex.length / 2 + 67;
+}
+
 function hexToUtf8Safe(hex: string): string {
   try {
     return ethers.toUtf8String('0x' + hex.replace(/^0x/, ''));
@@ -84,6 +136,46 @@ export async function getTronBalance(address: string, isTestnet: boolean): Promi
   const data = await res.json();
   const balanceSun = data.data?.[0]?.balance ?? 0;
   return (balanceSun / 1e6).toFixed(6);
+}
+
+export async function estimateTrxFee(
+  mnemonic: string,
+  isTestnet: boolean,
+  toAddress: string,
+  amountTrx: string
+): Promise<string> {
+  const base = getTronApiBase(isTestnet);
+  const hdWallet = deriveTronHDWallet(mnemonic);
+  const fromAddress = tronAddressFromPrivateKey(hdWallet.privateKey);
+  const amountSun = Math.round(parseFloat(amountTrx) * 1e6);
+  if (!Number.isFinite(amountSun) || amountSun <= 0) {
+    throw new Error('Invalid amount');
+  }
+
+  const createRes = await fetch(`${base}/wallet/createtransaction`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      to_address: tronAddressToHexPrefixed(toAddress),
+      owner_address: tronAddressToHexPrefixed(fromAddress),
+      amount: amountSun,
+      visible: false,
+    }),
+  });
+  const unsignedTx = await createRes.json();
+  if (!unsignedTx?.raw_data_hex) {
+    throw new Error(unsignedTx?.Error ?? 'Failed to prepare transaction for fee estimate');
+  }
+
+  const [resources, params] = await Promise.all([
+    getAccountResources(base, fromAddress),
+    getChainParameters(base),
+  ]);
+
+  const bytesNeeded = estimateSignedBytes(unsignedTx.raw_data_hex);
+  const extraBandwidth = Math.max(0, bytesNeeded - resources.availableBandwidth);
+  const feeSun = extraBandwidth * params.bandwidthPriceSun;
+  return (feeSun / 1e6).toFixed(6);
 }
 
 export interface SendTrxResult {
@@ -201,6 +293,54 @@ export async function getTrc20Balance(
   );
   const balance = abiCoder.decode(['uint256'], '0x' + resultHex)[0] as bigint;
   return ethers.formatUnits(balance, decimals);
+}
+
+export async function estimateTrc20Fee(
+  mnemonic: string,
+  isTestnet: boolean,
+  contractAddress: string,
+  toAddress: string,
+  amount: string,
+  decimals: number
+): Promise<string> {
+  const base = getTronApiBase(isTestnet);
+  const hdWallet = deriveTronHDWallet(mnemonic);
+  const fromAddress = tronAddressFromPrivateKey(hdWallet.privateKey);
+  const amountUnits = ethers.parseUnits(amount, decimals);
+
+  const createRes = await fetch(`${base}/wallet/triggersmartcontract`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      owner_address: tronAddressToHexPrefixed(fromAddress),
+      contract_address: tronAddressToHexPrefixed(contractAddress),
+      function_selector: 'transfer(address,uint256)',
+      parameter: encodeTransferParam(toAddress, amountUnits),
+      fee_limit: 100_000_000,
+      call_value: 0,
+      visible: false,
+    }),
+  });
+  const created = await createRes.json();
+  const unsignedTx = created.transaction;
+  if (!unsignedTx?.raw_data_hex) {
+    throw new Error(
+      created.result?.message ? hexToUtf8Safe(created.result.message) : 'Failed to prepare token transfer for fee estimate'
+    );
+  }
+
+  const energyNeeded = created.energy_used ?? 0;
+  const bytesNeeded = estimateSignedBytes(unsignedTx.raw_data_hex);
+
+  const [resources, params] = await Promise.all([
+    getAccountResources(base, fromAddress),
+    getChainParameters(base),
+  ]);
+
+  const extraBandwidth = Math.max(0, bytesNeeded - resources.availableBandwidth);
+  const extraEnergy = Math.max(0, energyNeeded - resources.availableEnergy);
+  const feeSun = extraBandwidth * params.bandwidthPriceSun + extraEnergy * params.energyPriceSun;
+  return (feeSun / 1e6).toFixed(6);
 }
 
 export interface SendTrc20Result {

@@ -17,7 +17,6 @@ import { MAINNET_CHAIN_LIST, TESTNET_CHAIN_LIST, CHAINS, ChainKey } from '../lib
 import * as chainService from '../lib/chainService';
 import { getTokensForChain, StoredToken } from '../lib/tokenStorage';
 import { checkPin } from '../lib/pinAuth';
-import { estimateGasFee } from '../lib/wallet';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Send'>;
 
@@ -78,16 +77,19 @@ export default function SendScreen({ route, navigation }: Props) {
       return;
     }
 
-    let feeNote = '';
-    if (CHAINS[chain].family === 'evm' && !selectedToken) {
-      try {
-        const fee = await estimateGasFee(chain);
-        feeNote = `\n\nEstimated network fee: ~${Number(fee).toFixed(6)} ${CHAINS[chain].symbol}`;
-      } catch {
-        // fee estimate is best-effort; proceed without it if the RPC call fails
-      }
-    } else {
-      feeNote = '\n\nA network fee will be deducted automatically.';
+    let feeNote = '\n\nA network fee will be deducted automatically.';
+    try {
+      const fee = await chainService.estimateFee(
+        mnemonic,
+        CHAINS[chain],
+        toAddress.trim(),
+        amount.trim(),
+        selectedToken ? { address: selectedToken.address, decimals: selectedToken.decimals } : undefined
+      );
+      feeNote = `\n\nEstimated network fee: ~${Number(fee).toFixed(6)} ${CHAINS[chain].symbol}`;
+    } catch {
+      // fee estimate is best-effort; fall back to the generic note above
+      // rather than blocking the send if the estimate call fails
     }
 
     const confirmed = await confirmTransaction(feeNote);

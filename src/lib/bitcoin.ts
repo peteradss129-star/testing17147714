@@ -78,21 +78,28 @@ function estimateVBytes(inputCount: number, outputCount: number): number {
 
 const DUST_THRESHOLD_SATS = 546;
 
-export interface SendBitcoinResult {
-  hash: string;
+interface PreparedBitcoinTx {
+  network: bitcoin.Network;
+  fromAddress: string;
+  outputScript: Uint8Array;
+  selected: UtxoInfo[];
+  amountSats: number;
+  feeSats: number;
+  changeSats: number;
 }
 
-export async function sendBitcoin(
+// Shared by estimateBitcoinFee (preview, before the user confirms) and
+// sendBitcoin (the real thing) so the fee shown to the user is exactly what
+// gets charged, not a separate approximation.
+async function prepareTransaction(
   mnemonic: string,
   isTestnet: boolean,
   toAddress: string,
   amountBtc: string
-): Promise<SendBitcoinResult> {
+): Promise<PreparedBitcoinTx> {
   const network = getNetwork(isTestnet);
   const node = deriveNode(mnemonic, isTestnet);
   const fromAddress = deriveBitcoinAddress(mnemonic, isTestnet);
-  if (!node.privateKey) throw new Error('Failed to derive Bitcoin private key');
-  const keyPair = ECPair.fromPrivateKey(node.privateKey, { network });
 
   const amountSats = Math.round(parseFloat(amountBtc) * 1e8);
   if (!Number.isFinite(amountSats) || amountSats <= 0) {
@@ -117,24 +124,60 @@ export async function sendBitcoin(
     if (total >= amountSats + fee) break;
   }
 
-  const fee = Math.ceil(estimateVBytes(selected.length, 2) * feeRate);
-  if (total < amountSats + fee) {
+  const feeSats = Math.ceil(estimateVBytes(selected.length, 2) * feeRate);
+  if (total < amountSats + feeSats) {
     throw new Error('Insufficient balance to cover amount and network fee');
   }
 
-  const psbt = new bitcoin.Psbt({ network });
-  for (const utxo of selected) {
+  return {
+    network,
+    fromAddress,
+    outputScript: output,
+    selected,
+    amountSats,
+    feeSats,
+    changeSats: total - amountSats - feeSats,
+  };
+}
+
+export async function estimateBitcoinFee(
+  mnemonic: string,
+  isTestnet: boolean,
+  toAddress: string,
+  amountBtc: string
+): Promise<string> {
+  const prepared = await prepareTransaction(mnemonic, isTestnet, toAddress, amountBtc);
+  return (prepared.feeSats / 1e8).toFixed(8);
+}
+
+export interface SendBitcoinResult {
+  hash: string;
+}
+
+export async function sendBitcoin(
+  mnemonic: string,
+  isTestnet: boolean,
+  toAddress: string,
+  amountBtc: string
+): Promise<SendBitcoinResult> {
+  const node = deriveNode(mnemonic, isTestnet);
+  if (!node.privateKey) throw new Error('Failed to derive Bitcoin private key');
+
+  const prepared = await prepareTransaction(mnemonic, isTestnet, toAddress, amountBtc);
+  const keyPair = ECPair.fromPrivateKey(node.privateKey, { network: prepared.network });
+
+  const psbt = new bitcoin.Psbt({ network: prepared.network });
+  for (const utxo of prepared.selected) {
     psbt.addInput({
       hash: utxo.txid,
       index: utxo.vout,
-      witnessUtxo: { script: output, value: BigInt(utxo.value) },
+      witnessUtxo: { script: prepared.outputScript, value: BigInt(utxo.value) },
     });
   }
 
-  psbt.addOutput({ address: toAddress, value: BigInt(amountSats) });
-  const change = total - amountSats - fee;
-  if (change > DUST_THRESHOLD_SATS) {
-    psbt.addOutput({ address: fromAddress, value: BigInt(change) });
+  psbt.addOutput({ address: toAddress, value: BigInt(prepared.amountSats) });
+  if (prepared.changeSats > DUST_THRESHOLD_SATS) {
+    psbt.addOutput({ address: prepared.fromAddress, value: BigInt(prepared.changeSats) });
   }
 
   psbt.signAllInputs(keyPair);
