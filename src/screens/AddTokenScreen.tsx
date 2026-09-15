@@ -2,18 +2,18 @@ import React, { useState } from 'react';
 import { Alert, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootNavigator';
-import { MAINNET_CHAIN_LIST, TESTNET_CHAIN_LIST, ChainKey } from '../lib/chains';
-import { fetchTokenMetadata, TokenMetadata } from '../lib/erc20';
+import { CHAINS, MAINNET_CHAIN_LIST, TESTNET_CHAIN_LIST, ChainKey } from '../lib/chains';
+import * as chainService from '../lib/chainService';
 import { addStoredToken } from '../lib/tokenStorage';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AddToken'>;
 
 export default function AddTokenScreen({ route, navigation }: Props) {
   const isTestnet = route.params?.isTestnet ?? true;
-  const chainList = isTestnet ? TESTNET_CHAIN_LIST : MAINNET_CHAIN_LIST;
+  const chainList = (isTestnet ? TESTNET_CHAIN_LIST : MAINNET_CHAIN_LIST).filter(chainService.chainSupportsTokens);
   const [chain, setChain] = useState<ChainKey>(route.params?.defaultChain ?? chainList[0].key);
   const [address, setAddress] = useState('');
-  const [metadata, setMetadata] = useState<TokenMetadata | null>(null);
+  const [metadata, setMetadata] = useState<chainService.TokenMetadata | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -21,7 +21,7 @@ export default function AddTokenScreen({ route, navigation }: Props) {
     setMetadata(null);
     setLoading(true);
     try {
-      const meta = await fetchTokenMetadata(chain, address.trim());
+      const meta = await chainService.fetchTokenMetadata(CHAINS[chain], address.trim());
       setMetadata(meta);
     } catch (e: any) {
       Alert.alert('Could not load token', e?.message ?? 'Check the contract address and network.');
@@ -45,8 +45,8 @@ export default function AddTokenScreen({ route, navigation }: Props) {
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Add custom token</Text>
       <Text style={styles.subtitle}>
-        Paste an ERC-20 contract address and we'll look up its symbol, name, and decimals directly
-        from the chain.
+        Paste a token contract address (ERC-20 or TRC-20) and we'll look up its symbol, name, and
+        decimals directly from the chain.
       </Text>
 
       <Text style={styles.label}>Network</Text>
@@ -74,7 +74,7 @@ export default function AddTokenScreen({ route, navigation }: Props) {
           setAddress(text);
           setMetadata(null);
         }}
-        placeholder="0x..."
+        placeholder={CHAINS[chain].family === 'tron' ? 'T...' : '0x...'}
         placeholderTextColor="#5A6172"
         autoCapitalize="none"
         autoCorrect={false}

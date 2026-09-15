@@ -22,7 +22,7 @@ export type RootStackParamList = {
   ImportWallet: undefined;
   SetPin: { mnemonic: string };
   Home: undefined;
-  Receive: undefined;
+  Receive: { isTestnet?: boolean } | undefined;
   Send: { defaultChain?: ChainKey; isTestnet?: boolean; tokenAddress?: string } | undefined;
   AddToken: { defaultChain?: ChainKey; isTestnet?: boolean } | undefined;
 };

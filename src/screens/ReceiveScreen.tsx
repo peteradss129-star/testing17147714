@@ -1,11 +1,23 @@
-import React from 'react';
-import { Alert, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { Alert, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import QRCode from 'react-native-qrcode-svg';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useWallet } from '../context/WalletContext';
+import { MAINNET_CHAIN_LIST, TESTNET_CHAIN_LIST, ChainKey } from '../lib/chains';
+import * as chainService from '../lib/chainService';
 
-export default function ReceiveScreen() {
-  const { address } = useWallet();
+type Props = NativeStackScreenProps<RootStackParamList, 'Receive'>;
+
+export default function ReceiveScreen({ route }: Props) {
+  const { mnemonic } = useWallet();
+  const isTestnet = route.params?.isTestnet ?? true;
+  const chainList = isTestnet ? TESTNET_CHAIN_LIST : MAINNET_CHAIN_LIST;
+  const [chainKey, setChainKey] = useState<ChainKey>(chainList[0].key);
+
+  const chain = chainList.find((c) => c.key === chainKey)!;
+  const address = mnemonic ? chainService.deriveAddress(mnemonic, chain) : null;
 
   const handleCopy = async () => {
     if (!address) return;
@@ -17,31 +29,64 @@ export default function ReceiveScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Receive</Text>
-      <Text style={styles.subtitle}>
-        This address works across all EVM chains (Ethereum, BSC, Polygon). Only send assets on
-        one of those networks to it.
-      </Text>
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <Text style={styles.title}>Receive</Text>
 
-      <View style={styles.qrWrapper}>
-        <QRCode value={address} size={220} backgroundColor="#fff" color="#0B0E17" />
-      </View>
+        <View style={styles.chainSelector}>
+          {chainList.map((c) => (
+            <TouchableOpacity
+              key={c.key}
+              style={[styles.chainOption, chainKey === c.key && styles.chainOptionActive]}
+              onPress={() => setChainKey(c.key)}
+            >
+              <View style={[styles.chainDot, { backgroundColor: c.color }]} />
+              <Text style={styles.chainOptionText}>{c.symbol}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-      <View style={styles.addressBox}>
-        <Text style={styles.addressText}>{address}</Text>
-      </View>
+        <Text style={styles.subtitle}>
+          {chain.family === 'evm'
+            ? 'This address works across all EVM chains (Ethereum, BSC, Polygon). Only send assets on an EVM network to it.'
+            : `This is your ${chain.name} address. Only send ${chain.name} assets to it.`}
+        </Text>
 
-      <TouchableOpacity style={styles.copyButton} onPress={handleCopy}>
-        <Text style={styles.copyButtonText}>Copy address</Text>
-      </TouchableOpacity>
+        <View style={styles.qrWrapper}>
+          <QRCode value={address} size={220} backgroundColor="#fff" color="#0B0E17" />
+        </View>
+
+        <View style={styles.addressBox}>
+          <Text style={styles.addressText}>{address}</Text>
+        </View>
+
+        <TouchableOpacity style={styles.copyButton} onPress={handleCopy}>
+          <Text style={styles.copyButtonText}>Copy address</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B0E17', padding: 24, alignItems: 'center' },
-  title: { fontSize: 24, fontWeight: '700', color: '#fff', marginBottom: 8, alignSelf: 'flex-start' },
-  subtitle: { fontSize: 13, color: '#9AA3B2', marginBottom: 32, alignSelf: 'flex-start', lineHeight: 18 },
+  container: { flex: 1, backgroundColor: '#0B0E17' },
+  scroll: { padding: 24, alignItems: 'center' },
+  title: { fontSize: 24, fontWeight: '700', color: '#fff', marginBottom: 16, alignSelf: 'flex-start' },
+  chainSelector: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16, alignSelf: 'flex-start' },
+  chainOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#151A26',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: '#2A2F3D',
+    gap: 6,
+  },
+  chainOptionActive: { borderColor: '#627EEA' },
+  chainOptionText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  chainDot: { width: 8, height: 8, borderRadius: 4 },
+  subtitle: { fontSize: 13, color: '#9AA3B2', marginBottom: 24, alignSelf: 'flex-start', lineHeight: 18 },
   qrWrapper: { backgroundColor: '#fff', padding: 20, borderRadius: 16, marginBottom: 24 },
   addressBox: {
     backgroundColor: '#151A26',

@@ -15,14 +15,13 @@ import { useFocusEffect } from '@react-navigation/native';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useWallet } from '../context/WalletContext';
 import { MAINNET_CHAIN_LIST, TESTNET_CHAIN_LIST, ChainKey } from '../lib/chains';
-import { getBalance } from '../lib/wallet';
-import { getTokenBalance } from '../lib/erc20';
+import * as chainService from '../lib/chainService';
 import { getStoredTokens, StoredToken } from '../lib/tokenStorage';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 export default function HomeScreen({ navigation }: Props) {
-  const { address, lock, resetWallet } = useWallet();
+  const { address, mnemonic, lock, resetWallet } = useWallet();
   const [isTestnet, setIsTestnet] = useState(true);
   const [balances, setBalances] = useState<Partial<Record<ChainKey, string>>>({});
   const [tokens, setTokens] = useState<StoredToken[]>([]);
@@ -35,13 +34,13 @@ export default function HomeScreen({ navigation }: Props) {
   const tokenKey = (t: StoredToken) => `${t.chain}:${t.address.toLowerCase()}`;
 
   const fetchAll = useCallback(async () => {
-    if (!address) return;
+    if (!mnemonic) return;
 
     setBalances({});
     const balanceResults = await Promise.all(
       chainList.map(async (chain) => {
         try {
-          const balance = await getBalance(address, chain.key);
+          const balance = await chainService.getNativeBalance(mnemonic, chain);
           return [chain.key, balance] as const;
         } catch (e) {
           console.warn(`Failed to fetch ${chain.name} balance:`, e);
@@ -59,7 +58,9 @@ export default function HomeScreen({ navigation }: Props) {
     const tokenResults = await Promise.all(
       scopedTokens.map(async (token) => {
         try {
-          const balance = await getTokenBalance(token.chain, token.address, address, token.decimals);
+          const chain = chainList.find((c) => c.key === token.chain)!;
+          const ownerAddress = chainService.deriveAddress(mnemonic, chain);
+          const balance = await chainService.getTokenBalance(chain, token.address, ownerAddress, token.decimals);
           return [tokenKey(token), balance] as const;
         } catch (e) {
           console.warn(`Failed to fetch ${token.symbol} balance:`, e);
@@ -68,7 +69,7 @@ export default function HomeScreen({ navigation }: Props) {
       })
     );
     setTokenBalances(Object.fromEntries(tokenResults));
-  }, [address, isTestnet]);
+  }, [mnemonic, isTestnet]);
 
   useFocusEffect(
     useCallback(() => {
@@ -108,7 +109,7 @@ export default function HomeScreen({ navigation }: Props) {
       >
         <View style={styles.header}>
           <View>
-            <Text style={styles.addressLabel}>Your address</Text>
+            <Text style={styles.addressLabel}>Your EVM address</Text>
             <Text style={styles.address}>
               {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : ''}
             </Text>
@@ -136,7 +137,7 @@ export default function HomeScreen({ navigation }: Props) {
         <View style={styles.actions}>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => navigation.navigate('Receive')}
+            onPress={() => navigation.navigate('Receive', { isTestnet })}
           >
             <Text style={styles.actionButtonText}>Receive</Text>
           </TouchableOpacity>

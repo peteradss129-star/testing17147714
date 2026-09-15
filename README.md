@@ -5,27 +5,35 @@ and ethers.js — the same core approach used by wallets like Trust Wallet.
 
 ## What's implemented
 
-- **Wallet creation & import**: BIP-39 mnemonic generation, BIP-44 HD key derivation
-  (`m/44'/60'/0'/0/0`) via ethers.js
-- **Multi-chain support (EVM)**: Ethereum, BNB Smart Chain, and Polygon (plus their
-  Sepolia/BSC Testnet/Amoy testnets) share one address and one signing path — see
-  `src/lib/chains.ts`
+- **Wallet creation & import**: one BIP-39 mnemonic derives keys for every chain
+  family below — the same recovery phrase backs up everything
+- **Multi-chain support**:
+  - **EVM**: Ethereum, BNB Smart Chain, and Polygon (plus their Sepolia/BSC
+    Testnet/Amoy testnets) share one address and one signing path (`m/44'/60'/0'/0/0`)
+    — see `src/lib/wallet.ts`
+  - **Bitcoin**: native SegWit (BIP84, `m/84'/0'/0'/0/0`) addresses, balance and
+    UTXO handling via the Blockstream Esplora API — see `src/lib/bitcoin.ts`
+  - **Tron**: `m/44'/195'/0'/0/0` derivation, TRX balance/transfers and TRC-20
+    token support via the TronGrid API — see `src/lib/tron.ts`
+  - `src/lib/chainService.ts` dispatches to whichever chain family a given
+    chain belongs to, so screens don't need per-chain branching
 - **Testnet mode**: a toggle on the home screen switches all balances/sends between
-  mainnet and free testnets, for safe experimentation with faucet funds
+  mainnet and free testnets (Sepolia, BSC Testnet, Polygon Amoy, Bitcoin Testnet,
+  Tron Shasta), for safe experimentation with faucet funds
 - **Secure key storage**: the mnemonic is stored via `expo-secure-store`, which uses
   the iOS Keychain / Android Keystore — never AsyncStorage, never sent to a server
 - **PIN lock**: a 6+ digit PIN (hashed with SHA-256) gates app unlock and every
   outgoing transaction
-- **Balances**: live native-token balances per chain via public RPC endpoints
-- **Custom ERC-20 tokens**: paste any token's contract address to look up its
-  symbol/decimals on-chain, track its balance, and send it — see `src/lib/erc20.ts`
+- **Balances**: live native-coin balances per chain via public RPC/API endpoints
+- **Custom tokens (ERC-20 and TRC-20)**: paste any token's contract address to look
+  up its symbol/decimals on-chain, track its balance, and send it
 - **Send / Receive**: send native coins or tokens with an on-chain transaction,
-  receive via address + QR code
+  receive via a per-chain address + QR code
 
 ## What's out of scope for this MVP
 
 - A curated/default token list (tokens must be added manually by contract address)
-- Bitcoin, Solana, or any non-EVM chain
+- Solana, or any chain family beyond EVM/Bitcoin/Tron
 - WalletConnect / dApp browser
 - Biometric unlock (Face ID / fingerprint) — PIN only
 - Backend services — this is 100% client-side and non-custodial
@@ -46,9 +54,12 @@ one set up.
 ```
 src/
   lib/
-    chains.ts       # chain configs (RPC URLs, chain IDs, explorers, faucets)
-    wallet.ts       # mnemonic generation, HD derivation, balance/send logic
-    erc20.ts        # ERC-20 metadata lookup, balance, and transfer
+    chains.ts       # chain configs (family, RPC URLs, chain IDs, explorers, faucets)
+    chainService.ts # dispatches address/balance/send calls by chain family
+    wallet.ts       # EVM: mnemonic generation, HD derivation, balance/send logic
+    erc20.ts        # EVM: ERC-20 metadata lookup, balance, and transfer
+    bitcoin.ts      # Bitcoin: address derivation, UTXO balance/send via Blockstream
+    tron.ts         # Tron: address derivation, TRX/TRC-20 balance/send via TronGrid
     tokenStorage.ts # secure-store-backed list of custom tokens the user added
     storage.ts      # SecureStore wrapper (mnemonic, PIN hash)
     pin.ts          # PIN hashing/verification

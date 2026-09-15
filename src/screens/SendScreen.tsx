@@ -14,8 +14,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useWallet } from '../context/WalletContext';
 import { MAINNET_CHAIN_LIST, TESTNET_CHAIN_LIST, CHAINS, ChainKey } from '../lib/chains';
-import { sendNativeToken } from '../lib/wallet';
-import { sendToken } from '../lib/erc20';
+import * as chainService from '../lib/chainService';
 import { getTokensForChain, StoredToken } from '../lib/tokenStorage';
 import { getPinHash } from '../lib/storage';
 import { verifyPin } from '../lib/pin';
@@ -63,8 +62,15 @@ export default function SendScreen({ route }: Props) {
     setSending(true);
     try {
       const result = selectedToken
-        ? await sendToken(mnemonic, chain, selectedToken.address, toAddress.trim(), amount.trim(), selectedToken.decimals)
-        : await sendNativeToken(mnemonic, chain, toAddress.trim(), amount.trim());
+        ? await chainService.sendToken(
+            mnemonic,
+            CHAINS[chain],
+            selectedToken.address,
+            toAddress.trim(),
+            amount.trim(),
+            selectedToken.decimals
+          )
+        : await chainService.sendNative(mnemonic, CHAINS[chain], toAddress.trim(), amount.trim());
       Alert.alert('Transaction sent', `Hash: ${result.hash}`, [
         { text: 'View on explorer', onPress: () => Linking.openURL(CHAINS[chain].explorerTxUrl(result.hash)) },
         { text: 'OK' },
@@ -135,7 +141,7 @@ export default function SendScreen({ route }: Props) {
           style={styles.input}
           value={toAddress}
           onChangeText={setToAddress}
-          placeholder="0x..."
+          placeholder={CHAINS[chain].family === 'bitcoin' ? 'bc1...' : CHAINS[chain].family === 'tron' ? 'T...' : '0x...'}
           placeholderTextColor="#5A6172"
           autoCapitalize="none"
           autoCorrect={false}

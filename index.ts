@@ -1,3 +1,9 @@
+// bitcoinjs-lib and its dependencies (bip174, address encoding) call Buffer
+// internally, which Hermes/React Native doesn't provide globally. Must load
+// before any of those modules do.
+import { Buffer } from 'buffer';
+global.Buffer = global.Buffer || Buffer;
+
 import { registerRootComponent } from 'expo';
 
 import App from './App';
