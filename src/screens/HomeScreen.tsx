@@ -5,6 +5,7 @@ import {
   SafeAreaView,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TouchableOpacity,
   View,
@@ -12,24 +13,24 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useWallet } from '../context/WalletContext';
-import { CHAIN_LIST, ChainKey } from '../lib/chains';
+import { MAINNET_CHAIN_LIST, TESTNET_CHAIN_LIST, ChainKey } from '../lib/chains';
 import { getBalance } from '../lib/wallet';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 export default function HomeScreen({ navigation }: Props) {
   const { address, lock, resetWallet } = useWallet();
-  const [balances, setBalances] = useState<Record<ChainKey, string | null>>({
-    ethereum: null,
-    bsc: null,
-    polygon: null,
-  });
+  const [isTestnet, setIsTestnet] = useState(true);
+  const [balances, setBalances] = useState<Partial<Record<ChainKey, string>>>({});
   const [refreshing, setRefreshing] = useState(false);
+
+  const chainList = isTestnet ? TESTNET_CHAIN_LIST : MAINNET_CHAIN_LIST;
 
   const fetchBalances = useCallback(async () => {
     if (!address) return;
+    setBalances({});
     const results = await Promise.all(
-      CHAIN_LIST.map(async (chain) => {
+      chainList.map(async (chain) => {
         try {
           const balance = await getBalance(address, chain.key);
           return [chain.key, balance] as const;
@@ -39,8 +40,8 @@ export default function HomeScreen({ navigation }: Props) {
         }
       })
     );
-    setBalances(Object.fromEntries(results) as Record<ChainKey, string>);
-  }, [address]);
+    setBalances(Object.fromEntries(results));
+  }, [address, chainList]);
 
   useEffect(() => {
     fetchBalances();
@@ -88,6 +89,21 @@ export default function HomeScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
 
+        <View style={styles.networkToggle}>
+          <View>
+            <Text style={styles.networkToggleTitle}>Testnet mode</Text>
+            <Text style={styles.networkToggleSubtitle}>
+              {isTestnet ? 'Using free test networks — safe to experiment' : 'Using real mainnet funds'}
+            </Text>
+          </View>
+          <Switch
+            value={isTestnet}
+            onValueChange={setIsTestnet}
+            trackColor={{ false: '#2A2F3D', true: '#627EEA' }}
+            thumbColor="#fff"
+          />
+        </View>
+
         <View style={styles.actions}>
           <TouchableOpacity
             style={styles.actionButton}
@@ -97,18 +113,18 @@ export default function HomeScreen({ navigation }: Props) {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => navigation.navigate('Send', { defaultChain: 'ethereum' })}
+            onPress={() => navigation.navigate('Send', { defaultChain: chainList[0].key, isTestnet })}
           >
             <Text style={styles.actionButtonText}>Send</Text>
           </TouchableOpacity>
         </View>
 
         <Text style={styles.sectionTitle}>Assets</Text>
-        {CHAIN_LIST.map((chain) => (
+        {chainList.map((chain) => (
           <TouchableOpacity
             key={chain.key}
             style={styles.chainRow}
-            onPress={() => navigation.navigate('Send', { defaultChain: chain.key })}
+            onPress={() => navigation.navigate('Send', { defaultChain: chain.key, isTestnet })}
           >
             <View style={[styles.chainDot, { backgroundColor: chain.color }]} />
             <View style={styles.chainInfo}>
@@ -116,7 +132,7 @@ export default function HomeScreen({ navigation }: Props) {
               <Text style={styles.chainSymbol}>{chain.symbol}</Text>
             </View>
             <Text style={styles.chainBalance}>
-              {balances[chain.key] === null
+              {balances[chain.key] === undefined
                 ? '...'
                 : balances[chain.key] === 'error'
                 ? 'error'
@@ -136,10 +152,23 @@ export default function HomeScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0B0E17' },
   scroll: { padding: 24 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   addressLabel: { color: '#9AA3B2', fontSize: 12 },
   address: { color: '#fff', fontSize: 18, fontWeight: '600', marginTop: 2 },
   lockButton: { color: '#627EEA', fontSize: 15, fontWeight: '600' },
+  networkToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#151A26',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#2A2F3D',
+  },
+  networkToggleTitle: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  networkToggleSubtitle: { color: '#9AA3B2', fontSize: 12, marginTop: 2 },
   actions: { flexDirection: 'row', gap: 12, marginBottom: 32 },
   actionButton: {
     flex: 1,

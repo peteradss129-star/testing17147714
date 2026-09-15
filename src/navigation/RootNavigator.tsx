@@ -22,7 +22,7 @@ export type RootStackParamList = {
   SetPin: { mnemonic: string };
   Home: undefined;
   Receive: undefined;
-  Send: { defaultChain?: ChainKey } | undefined;
+  Send: { defaultChain?: ChainKey; isTestnet?: boolean } | undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();

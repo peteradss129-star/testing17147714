@@ -1,4 +1,4 @@
-export type ChainKey = 'ethereum' | 'bsc' | 'polygon';
+export type ChainKey = 'ethereum' | 'bsc' | 'polygon' | 'sepolia' | 'bscTestnet' | 'polygonAmoy';
 
 export interface ChainConfig {
   key: ChainKey;
@@ -9,6 +9,7 @@ export interface ChainConfig {
   explorerTxUrl: (hash: string) => string;
   explorerAddressUrl: (address: string) => string;
   color: string;
+  faucetUrl?: string;
 }
 
 // Public RPC endpoints. Swap these for your own Infura/Alchemy/QuickNode
@@ -45,6 +46,40 @@ export const CHAINS: Record<ChainKey, ChainConfig> = {
     explorerAddressUrl: (address) => `https://polygonscan.com/address/${address}`,
     color: '#8247E5',
   },
+  sepolia: {
+    key: 'sepolia',
+    name: 'Ethereum Sepolia',
+    symbol: 'ETH',
+    chainId: 11155111,
+    rpcUrl: 'https://ethereum-sepolia-rpc.publicnode.com',
+    explorerTxUrl: (hash) => `https://sepolia.etherscan.io/tx/${hash}`,
+    explorerAddressUrl: (address) => `https://sepolia.etherscan.io/address/${address}`,
+    color: '#627EEA',
+    faucetUrl: 'https://www.alchemy.com/faucets/ethereum-sepolia',
+  },
+  bscTestnet: {
+    key: 'bscTestnet',
+    name: 'BNB Testnet',
+    symbol: 'tBNB',
+    chainId: 97,
+    rpcUrl: 'https://bsc-testnet-rpc.publicnode.com',
+    explorerTxUrl: (hash) => `https://testnet.bscscan.com/tx/${hash}`,
+    explorerAddressUrl: (address) => `https://testnet.bscscan.com/address/${address}`,
+    color: '#F0B90B',
+    faucetUrl: 'https://testnet.bnbchain.org/faucet-smart',
+  },
+  polygonAmoy: {
+    key: 'polygonAmoy',
+    name: 'Polygon Amoy',
+    symbol: 'POL',
+    chainId: 80002,
+    rpcUrl: 'https://polygon-amoy-bor-rpc.publicnode.com',
+    explorerTxUrl: (hash) => `https://amoy.polygonscan.com/tx/${hash}`,
+    explorerAddressUrl: (address) => `https://amoy.polygonscan.com/address/${address}`,
+    color: '#8247E5',
+    faucetUrl: 'https://faucet.polygon.technology',
+  },
 };
 
-export const CHAIN_LIST: ChainConfig[] = Object.values(CHAINS);
+export const MAINNET_CHAIN_LIST: ChainConfig[] = [CHAINS.ethereum, CHAINS.bsc, CHAINS.polygon];
+export const TESTNET_CHAIN_LIST: ChainConfig[] = [CHAINS.sepolia, CHAINS.bscTestnet, CHAINS.polygonAmoy];

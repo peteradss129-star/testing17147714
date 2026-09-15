@@ -13,7 +13,7 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useWallet } from '../context/WalletContext';
-import { CHAIN_LIST, CHAINS, ChainKey } from '../lib/chains';
+import { MAINNET_CHAIN_LIST, TESTNET_CHAIN_LIST, CHAINS, ChainKey } from '../lib/chains';
 import { sendNativeToken } from '../lib/wallet';
 import { getPinHash } from '../lib/storage';
 import { verifyPin } from '../lib/pin';
@@ -22,7 +22,9 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Send'>;
 
 export default function SendScreen({ route }: Props) {
   const { mnemonic } = useWallet();
-  const [chain, setChain] = useState<ChainKey>(route.params?.defaultChain ?? 'ethereum');
+  const isTestnet = route.params?.isTestnet ?? true;
+  const chainList = isTestnet ? TESTNET_CHAIN_LIST : MAINNET_CHAIN_LIST;
+  const [chain, setChain] = useState<ChainKey>(route.params?.defaultChain ?? chainList[0].key);
   const [toAddress, setToAddress] = useState('');
   const [amount, setAmount] = useState('');
   const [pin, setPin] = useState('');
@@ -64,7 +66,7 @@ export default function SendScreen({ route }: Props) {
 
         <Text style={styles.label}>Network</Text>
         <View style={styles.chainSelector}>
-          {CHAIN_LIST.map((c) => (
+          {chainList.map((c) => (
             <TouchableOpacity
               key={c.key}
               style={[styles.chainOption, chain === c.key && styles.chainOptionActive]}
@@ -75,6 +77,15 @@ export default function SendScreen({ route }: Props) {
             </TouchableOpacity>
           ))}
         </View>
+
+        {CHAINS[chain].faucetUrl && (
+          <TouchableOpacity
+            style={styles.faucetLink}
+            onPress={() => Linking.openURL(CHAINS[chain].faucetUrl!)}
+          >
+            <Text style={styles.faucetLinkText}>Need test {CHAINS[chain].symbol}? Get some from a faucet →</Text>
+          </TouchableOpacity>
+        )}
 
         <Text style={styles.label}>Recipient address</Text>
         <TextInput
@@ -136,6 +147,8 @@ const styles = StyleSheet.create({
   chainOptionActive: { borderColor: '#627EEA' },
   chainOptionText: { color: '#fff', fontSize: 13, fontWeight: '600' },
   chainDot: { width: 8, height: 8, borderRadius: 4 },
+  faucetLink: { marginBottom: 16 },
+  faucetLinkText: { color: '#627EEA', fontSize: 13, fontWeight: '500' },
   input: {
     backgroundColor: '#151A26',
     borderRadius: 10,
