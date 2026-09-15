@@ -23,7 +23,15 @@ and ethers.js — the same core approach used by wallets like Trust Wallet.
 - **Secure key storage**: the mnemonic is stored via `expo-secure-store`, which uses
   the iOS Keychain / Android Keystore — never AsyncStorage, never sent to a server
 - **PIN lock**: a 6+ digit PIN (hashed with SHA-256) gates app unlock and every
-  outgoing transaction
+  outgoing transaction, with exponential-backoff lockout after 5 failed attempts
+  (`src/lib/pinAuth.ts`) shared by both unlock and transaction confirmation
+- **Biometric unlock**: Face ID / fingerprint via `expo-local-authentication`,
+  offered automatically on the unlock screen when the device supports it, with
+  PIN as the fallback
+- **Auto-lock on background**: backgrounding the app immediately clears the
+  in-memory mnemonic and returns to the lock screen
+- **Transaction confirmation**: before signing, a review step shows the
+  recipient, amount, and network — with a live gas estimate for EVM native sends
 - **Balances**: live native-coin balances per chain via public RPC/API endpoints
 - **Custom tokens (ERC-20 and TRC-20)**: paste any token's contract address to look
   up its symbol/decimals on-chain, track its balance, and send it
@@ -35,7 +43,6 @@ and ethers.js — the same core approach used by wallets like Trust Wallet.
 - A curated/default token list (tokens must be added manually by contract address)
 - Solana, or any chain family beyond EVM/Bitcoin/Tron
 - WalletConnect / dApp browser
-- Biometric unlock (Face ID / fingerprint) — PIN only
 - Backend services — this is 100% client-side and non-custodial
 
 ## Getting started
@@ -61,8 +68,10 @@ src/
     bitcoin.ts      # Bitcoin: address derivation, UTXO balance/send via Blockstream
     tron.ts         # Tron: address derivation, TRX/TRC-20 balance/send via TronGrid
     tokenStorage.ts # secure-store-backed list of custom tokens the user added
-    storage.ts      # SecureStore wrapper (mnemonic, PIN hash)
+    storage.ts      # SecureStore wrapper (mnemonic, PIN hash, lockout state)
     pin.ts          # PIN hashing/verification
+    pinAuth.ts      # PIN check with failed-attempt lockout, shared by unlock + send
+    biometrics.ts   # Face ID / fingerprint helpers (expo-local-authentication)
   context/
     WalletContext.tsx  # app-wide wallet state (locked/unlocked, address, mnemonic)
   screens/        # onboarding, home, send, receive, add-token screens
@@ -77,8 +86,8 @@ value into it:
 - Replace the public RPC endpoints in `src/lib/chains.ts` with your own
   (Infura/Alchemy/QuickNode) — public endpoints are rate-limited and third-party
   operated
-- Add biometric unlock and auto-lock on backgrounding
-- Add transaction simulation / confirmation screens showing gas fees before signing
 - Get an independent security audit — a bug here means lost funds, not just a
   broken feature
 - Consider adding jailbreak/root detection and certificate pinning for RPC calls
+- Consider an idle/inactivity timeout in addition to the background lock, and a
+  "wipe after N failed PIN attempts" option for lost-device scenarios

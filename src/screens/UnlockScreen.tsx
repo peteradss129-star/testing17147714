@@ -1,23 +1,41 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Alert, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity } from 'react-native';
 import { useWallet } from '../context/WalletContext';
+import { isBiometricAvailable } from '../lib/biometrics';
 
 export default function UnlockScreen() {
-  const { unlock } = useWallet();
+  const { unlock, unlockWithBiometrics } = useWallet();
   const [pin, setPin] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const triedBiometricOnMount = useRef(false);
+
+  useEffect(() => {
+    (async () => {
+      const available = await isBiometricAvailable();
+      setBiometricAvailable(available);
+      if (available && !triedBiometricOnMount.current) {
+        triedBiometricOnMount.current = true;
+        await unlockWithBiometrics();
+      }
+    })();
+  }, [unlockWithBiometrics]);
 
   const handleUnlock = async () => {
     setSubmitting(true);
     try {
-      const ok = await unlock(pin);
-      if (!ok) {
-        Alert.alert('Incorrect PIN', 'Please try again.');
+      const result = await unlock(pin);
+      if (!result.ok) {
+        Alert.alert('Incorrect PIN', result.message ?? 'Please try again.');
         setPin('');
       }
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleBiometricRetry = async () => {
+    await unlockWithBiometrics();
   };
 
   return (
@@ -39,6 +57,12 @@ export default function UnlockScreen() {
       <TouchableOpacity style={styles.button} disabled={submitting} onPress={handleUnlock}>
         <Text style={styles.buttonText}>{submitting ? 'Checking...' : 'Unlock'}</Text>
       </TouchableOpacity>
+
+      {biometricAvailable && (
+        <TouchableOpacity style={styles.biometricButton} onPress={handleBiometricRetry}>
+          <Text style={styles.biometricButtonText}>Use Face ID / Fingerprint</Text>
+        </TouchableOpacity>
+      )}
     </SafeAreaView>
   );
 }
@@ -67,4 +91,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  biometricButton: { marginTop: 16, alignItems: 'center' },
+  biometricButtonText: { color: '#627EEA', fontSize: 14, fontWeight: '600' },
 });

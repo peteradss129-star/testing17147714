@@ -16,8 +16,8 @@ import { useWallet } from '../context/WalletContext';
 import { MAINNET_CHAIN_LIST, TESTNET_CHAIN_LIST, CHAINS, ChainKey } from '../lib/chains';
 import * as chainService from '../lib/chainService';
 import { getTokensForChain, StoredToken } from '../lib/tokenStorage';
-import { getPinHash } from '../lib/storage';
-import { verifyPin } from '../lib/pin';
+import { checkPin } from '../lib/pinAuth';
+import { estimateGasFee } from '../lib/wallet';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Send'>;
 
@@ -47,17 +47,44 @@ export default function SendScreen({ route }: Props) {
   const selectedToken = tokens.find((t) => t.address === selectedAsset);
   const assetSymbol = selectedToken ? selectedToken.symbol : CHAINS[chain].symbol;
 
+  const confirmTransaction = (feeNote: string): Promise<boolean> =>
+    new Promise((resolve) => {
+      Alert.alert(
+        'Confirm transaction',
+        `Send ${amount} ${assetSymbol}\nto ${toAddress}\non ${CHAINS[chain].name}${feeNote}`,
+        [
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+          { text: 'Confirm & Send', onPress: () => resolve(true) },
+        ]
+      );
+    });
+
   const handleSend = async () => {
     if (!mnemonic) return;
     if (!toAddress || !amount) {
       Alert.alert('Missing fields', 'Enter a recipient address and amount.');
       return;
     }
-    const storedHash = await getPinHash();
-    if (!storedHash || !(await verifyPin(pin, storedHash))) {
-      Alert.alert('Incorrect PIN', 'Please enter your PIN to authorize this transaction.');
+    const pinResult = await checkPin(pin);
+    if (!pinResult.ok) {
+      Alert.alert('PIN check failed', pinResult.message ?? 'Incorrect PIN');
       return;
     }
+
+    let feeNote = '';
+    if (CHAINS[chain].family === 'evm' && !selectedToken) {
+      try {
+        const fee = await estimateGasFee(chain);
+        feeNote = `\n\nEstimated network fee: ~${Number(fee).toFixed(6)} ${CHAINS[chain].symbol}`;
+      } catch {
+        // fee estimate is best-effort; proceed without it if the RPC call fails
+      }
+    } else {
+      feeNote = '\n\nA network fee will be deducted automatically.';
+    }
+
+    const confirmed = await confirmTransaction(feeNote);
+    if (!confirmed) return;
 
     setSending(true);
     try {
