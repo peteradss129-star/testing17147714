@@ -34,6 +34,16 @@ function tronAddressToEvmStyle(address: string): string {
 
 const TRON_ZERO_ADDRESS = evmStyleToTronAddress('0x' + '00'.repeat(20));
 
+function tronHexAddressToBase58(hexAddress: string): string {
+  const clean = hexAddress.startsWith('0x') ? hexAddress.slice(2) : hexAddress;
+  const bytes = ethers.getBytes('0x' + clean); // 21 bytes: 0x41 prefix + 20 address bytes
+  const checksum = ethers.getBytes(ethers.sha256(ethers.sha256(bytes))).slice(0, 4);
+  const full = new Uint8Array(25);
+  full.set(bytes, 0);
+  full.set(checksum, 21);
+  return bs58.encode(full);
+}
+
 function hexToUtf8Safe(hex: string): string {
   try {
     return ethers.toUtf8String('0x' + hex.replace(/^0x/, ''));
@@ -240,4 +250,67 @@ export async function sendTrc20(
     throw new Error(result.message ? hexToUtf8Safe(result.message) : 'Broadcast failed');
   }
   return { hash: unsignedTx.txID };
+}
+
+export interface TronTxHistoryItem {
+  hash: string;
+  direction: 'in' | 'out' | 'self';
+  amount: string;
+  counterparty: string;
+  timestamp: number;
+  confirmed: boolean;
+}
+
+export async function getTronHistory(address: string, isTestnet: boolean): Promise<TronTxHistoryItem[]> {
+  const base = getTronApiBase(isTestnet);
+  const res = await fetch(`${base}/v1/accounts/${address}/transactions?limit=20&only_confirmed=true`);
+  if (!res.ok) throw new Error(`Failed to fetch history (HTTP ${res.status})`);
+  const data = await res.json();
+
+  const items: TronTxHistoryItem[] = [];
+  for (const tx of data.data ?? []) {
+    const contract = tx.raw_data?.contract?.[0];
+    if (contract?.type !== 'TransferContract') continue;
+    const value = contract.parameter?.value;
+    if (!value) continue;
+
+    const fromAddress = tronHexAddressToBase58(value.owner_address);
+    const toAddress = tronHexAddressToBase58(value.to_address);
+    const dir: TronTxHistoryItem['direction'] = fromAddress === address ? 'out' : 'in';
+    items.push({
+      hash: tx.txID,
+      direction: dir,
+      amount: ((value.amount ?? 0) / 1e6).toFixed(6),
+      counterparty: dir === 'out' ? toAddress : fromAddress,
+      timestamp: Math.floor((tx.block_timestamp ?? 0) / 1000),
+      confirmed: true,
+    });
+  }
+  return items;
+}
+
+export async function getTrc20History(
+  address: string,
+  contractAddress: string,
+  isTestnet: boolean,
+  decimals: number
+): Promise<TronTxHistoryItem[]> {
+  const base = getTronApiBase(isTestnet);
+  const res = await fetch(
+    `${base}/v1/accounts/${address}/transactions/trc20?contract_address=${contractAddress}&limit=20&only_confirmed=true`
+  );
+  if (!res.ok) throw new Error(`Failed to fetch token history (HTTP ${res.status})`);
+  const data = await res.json();
+
+  return (data.data ?? []).map((tx: any) => {
+    const dir: TronTxHistoryItem['direction'] = tx.from === address ? 'out' : 'in';
+    return {
+      hash: tx.transaction_id,
+      direction: dir,
+      amount: ethers.formatUnits(BigInt(tx.value ?? '0'), decimals),
+      counterparty: dir === 'out' ? tx.to : tx.from,
+      timestamp: Math.floor((tx.block_timestamp ?? 0) / 1000),
+      confirmed: true,
+    };
+  });
 }

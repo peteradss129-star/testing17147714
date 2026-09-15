@@ -23,7 +23,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Send'>;
 
 const NATIVE_ASSET = 'native';
 
-export default function SendScreen({ route }: Props) {
+export default function SendScreen({ route, navigation }: Props) {
   const { mnemonic } = useWallet();
   const isTestnet = route.params?.isTestnet ?? true;
   const chainList = isTestnet ? TESTNET_CHAIN_LIST : MAINNET_CHAIN_LIST;
@@ -38,6 +38,13 @@ export default function SendScreen({ route }: Props) {
   useEffect(() => {
     getTokensForChain(chain).then(setTokens);
   }, [chain]);
+
+  useEffect(() => {
+    if (route.params?.scannedAddress) {
+      setToAddress(route.params.scannedAddress);
+      navigation.setParams({ scannedAddress: undefined });
+    }
+  }, [route.params?.scannedAddress]);
 
   const handleChainChange = (newChain: ChainKey) => {
     setChain(newChain);
@@ -164,15 +171,20 @@ export default function SendScreen({ route }: Props) {
         )}
 
         <Text style={styles.label}>Recipient address</Text>
-        <TextInput
-          style={styles.input}
-          value={toAddress}
-          onChangeText={setToAddress}
-          placeholder={CHAINS[chain].family === 'bitcoin' ? 'bc1...' : CHAINS[chain].family === 'tron' ? 'T...' : '0x...'}
-          placeholderTextColor="#5A6172"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
+        <View style={styles.addressRow}>
+          <TextInput
+            style={[styles.input, styles.addressInput]}
+            value={toAddress}
+            onChangeText={setToAddress}
+            placeholder={CHAINS[chain].family === 'bitcoin' ? 'bc1...' : CHAINS[chain].family === 'tron' ? 'T...' : '0x...'}
+            placeholderTextColor="#5A6172"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <TouchableOpacity style={styles.scanButton} onPress={() => navigation.navigate('ScanQR')}>
+            <Text style={styles.scanButtonText}>Scan</Text>
+          </TouchableOpacity>
+        </View>
 
         <Text style={styles.label}>Amount ({assetSymbol})</Text>
         <TextInput
@@ -225,6 +237,17 @@ const styles = StyleSheet.create({
   chainDot: { width: 8, height: 8, borderRadius: 4 },
   faucetLink: { marginBottom: 16 },
   faucetLinkText: { color: '#627EEA', fontSize: 13, fontWeight: '500' },
+  addressRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginBottom: 16 },
+  addressInput: { flex: 1, marginBottom: 0 },
+  scanButton: {
+    backgroundColor: '#151A26',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#2A2F3D',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  scanButtonText: { color: '#627EEA', fontSize: 14, fontWeight: '600' },
   input: {
     backgroundColor: '#151A26',
     borderRadius: 10,

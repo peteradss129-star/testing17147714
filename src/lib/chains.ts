@@ -23,6 +23,7 @@ export interface ChainConfig {
   isTestnet: boolean;
   chainId?: number; // EVM only
   rpcUrl?: string; // EVM only
+  explorerApiUrl?: string; // EVM only — Etherscan-family API base, for tx history
   explorerTxUrl: (hash: string) => string;
   explorerAddressUrl: (address: string) => string;
   color: string;
@@ -41,6 +42,7 @@ export const CHAINS: Record<ChainKey, ChainConfig> = {
     isTestnet: false,
     chainId: 1,
     rpcUrl: 'https://ethereum-rpc.publicnode.com',
+    explorerApiUrl: 'https://api.etherscan.io/api',
     explorerTxUrl: (hash) => `https://etherscan.io/tx/${hash}`,
     explorerAddressUrl: (address) => `https://etherscan.io/address/${address}`,
     color: '#627EEA',
@@ -53,6 +55,7 @@ export const CHAINS: Record<ChainKey, ChainConfig> = {
     isTestnet: false,
     chainId: 56,
     rpcUrl: 'https://bsc-rpc.publicnode.com',
+    explorerApiUrl: 'https://api.bscscan.com/api',
     explorerTxUrl: (hash) => `https://bscscan.com/tx/${hash}`,
     explorerAddressUrl: (address) => `https://bscscan.com/address/${address}`,
     color: '#F0B90B',
@@ -65,6 +68,7 @@ export const CHAINS: Record<ChainKey, ChainConfig> = {
     isTestnet: false,
     chainId: 137,
     rpcUrl: 'https://polygon-bor-rpc.publicnode.com',
+    explorerApiUrl: 'https://api.polygonscan.com/api',
     explorerTxUrl: (hash) => `https://polygonscan.com/tx/${hash}`,
     explorerAddressUrl: (address) => `https://polygonscan.com/address/${address}`,
     color: '#8247E5',
@@ -77,6 +81,7 @@ export const CHAINS: Record<ChainKey, ChainConfig> = {
     isTestnet: true,
     chainId: 11155111,
     rpcUrl: 'https://ethereum-sepolia-rpc.publicnode.com',
+    explorerApiUrl: 'https://api-sepolia.etherscan.io/api',
     explorerTxUrl: (hash) => `https://sepolia.etherscan.io/tx/${hash}`,
     explorerAddressUrl: (address) => `https://sepolia.etherscan.io/address/${address}`,
     color: '#627EEA',
@@ -90,6 +95,7 @@ export const CHAINS: Record<ChainKey, ChainConfig> = {
     isTestnet: true,
     chainId: 97,
     rpcUrl: 'https://bsc-testnet-rpc.publicnode.com',
+    explorerApiUrl: 'https://api-testnet.bscscan.com/api',
     explorerTxUrl: (hash) => `https://testnet.bscscan.com/tx/${hash}`,
     explorerAddressUrl: (address) => `https://testnet.bscscan.com/address/${address}`,
     color: '#F0B90B',
@@ -103,6 +109,7 @@ export const CHAINS: Record<ChainKey, ChainConfig> = {
     isTestnet: true,
     chainId: 80002,
     rpcUrl: 'https://polygon-amoy-bor-rpc.publicnode.com',
+    explorerApiUrl: 'https://api-amoy.polygonscan.com/api',
     explorerTxUrl: (hash) => `https://amoy.polygonscan.com/tx/${hash}`,
     explorerAddressUrl: (address) => `https://amoy.polygonscan.com/address/${address}`,
     color: '#8247E5',

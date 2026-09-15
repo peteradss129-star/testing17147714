@@ -37,6 +37,12 @@ and ethers.js — the same core approach used by wallets like Trust Wallet.
   up its symbol/decimals on-chain, track its balance, and send it
 - **Send / Receive**: send native coins or tokens with an on-chain transaction,
   receive via a per-chain address + QR code
+- **QR scanner**: scan a recipient's QR code from the send screen instead of typing
+  an address (`src/screens/ScanQRScreen.tsx`, via `expo-camera`)
+- **Per-asset transaction history**: tapping a coin or token opens a detail screen
+  with its balance and recent transactions, tap any row to open it on a block
+  explorer — Bitcoin via Blockstream, Tron via TronGrid, EVM via the relevant
+  Etherscan-family API (`src/lib/evmHistory.ts`)
 
 ## What's out of scope for this MVP
 
@@ -65,8 +71,9 @@ src/
     chainService.ts # dispatches address/balance/send calls by chain family
     wallet.ts       # EVM: mnemonic generation, HD derivation, balance/send logic
     erc20.ts        # EVM: ERC-20 metadata lookup, balance, and transfer
-    bitcoin.ts      # Bitcoin: address derivation, UTXO balance/send via Blockstream
-    tron.ts         # Tron: address derivation, TRX/TRC-20 balance/send via TronGrid
+    bitcoin.ts      # Bitcoin: address derivation, UTXO balance/send/history via Blockstream
+    tron.ts         # Tron: address derivation, TRX/TRC-20 balance/send/history via TronGrid
+    evmHistory.ts   # EVM: transaction history via Etherscan-family explorer APIs
     tokenStorage.ts # secure-store-backed list of custom tokens the user added
     storage.ts      # SecureStore wrapper (mnemonic, PIN hash, lockout state)
     pin.ts          # PIN hashing/verification
@@ -74,7 +81,8 @@ src/
     biometrics.ts   # Face ID / fingerprint helpers (expo-local-authentication)
   context/
     WalletContext.tsx  # app-wide wallet state (locked/unlocked, address, mnemonic)
-  screens/        # onboarding, home, send, receive, add-token screens
+  screens/        # onboarding, home, send, receive, add-token, scan-qr,
+                  # asset-history screens
   navigation/      # stack navigator wiring
 ```
 
@@ -86,6 +94,10 @@ value into it:
 - Replace the public RPC endpoints in `src/lib/chains.ts` with your own
   (Infura/Alchemy/QuickNode) — public endpoints are rate-limited and third-party
   operated
+- EVM transaction history calls the relevant Etherscan/BscScan/PolygonScan API
+  without an API key, which is rate-limited and the least battle-tested part of
+  this codebase — add your own key (`&apikey=...`) to `explorerApiUrl` in
+  `src/lib/chains.ts` if it's flaky
 - Get an independent security audit — a bug here means lost funds, not just a
   broken feature
 - Consider adding jailbreak/root detection and certificate pinning for RPC calls

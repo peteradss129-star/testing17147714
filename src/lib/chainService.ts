@@ -1,6 +1,7 @@
 import { ChainConfig } from './chains';
 import * as evmWallet from './wallet';
 import * as evmToken from './erc20';
+import * as evmHistory from './evmHistory';
 import * as btc from './bitcoin';
 import * as tron from './tron';
 
@@ -102,4 +103,36 @@ export async function sendToken(
     return tron.sendTrc20(mnemonic, chain.isTestnet, tokenAddress, toAddress, amount, decimals);
   }
   throw new Error(`${chain.name} does not support tokens`);
+}
+
+export interface TxHistoryItem {
+  hash: string;
+  direction: 'in' | 'out' | 'self';
+  amount: string;
+  counterparty?: string;
+  timestamp: number;
+  confirmed: boolean;
+  explorerUrl: string;
+}
+
+export async function getTransactionHistory(
+  chain: ChainConfig,
+  address: string,
+  token?: { address: string; decimals: number }
+): Promise<TxHistoryItem[]> {
+  let items: Omit<TxHistoryItem, 'explorerUrl'>[];
+
+  if (chain.family === 'evm') {
+    items = token
+      ? await evmHistory.getTokenTransactionHistory(chain.key, address, token.address, token.decimals)
+      : await evmHistory.getTransactionHistory(chain.key, address);
+  } else if (chain.family === 'bitcoin') {
+    items = await btc.getBitcoinHistory(address, chain.isTestnet);
+  } else {
+    items = token
+      ? await tron.getTrc20History(address, token.address, chain.isTestnet, token.decimals)
+      : await tron.getTronHistory(address, chain.isTestnet);
+  }
+
+  return items.map((item) => ({ ...item, explorerUrl: chain.explorerTxUrl(item.hash) }));
 }

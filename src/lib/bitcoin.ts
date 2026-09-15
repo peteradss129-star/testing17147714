@@ -149,3 +149,36 @@ export async function sendBitcoin(
   const txid = await broadcastRes.text();
   return { hash: txid };
 }
+
+export interface BitcoinTxHistoryItem {
+  hash: string;
+  direction: 'in' | 'out' | 'self';
+  amount: string;
+  timestamp: number;
+  confirmed: boolean;
+}
+
+export async function getBitcoinHistory(address: string, isTestnet: boolean): Promise<BitcoinTxHistoryItem[]> {
+  const res = await fetch(`${getApiBase(isTestnet)}/address/${address}/txs`);
+  if (!res.ok) throw new Error(`Failed to fetch history (HTTP ${res.status})`);
+  const txs = await res.json();
+
+  return txs.map((tx: any) => {
+    let received = 0;
+    let sent = 0;
+    for (const vout of tx.vout ?? []) {
+      if (vout.scriptpubkey_address === address) received += vout.value;
+    }
+    for (const vin of tx.vin ?? []) {
+      if (vin.prevout?.scriptpubkey_address === address) sent += vin.prevout.value;
+    }
+    const net = received - sent;
+    return {
+      hash: tx.txid,
+      direction: net > 0 ? 'in' : net < 0 ? 'out' : 'self',
+      amount: (Math.abs(net) / 1e8).toFixed(8),
+      timestamp: tx.status?.confirmed ? tx.status.block_time : 0,
+      confirmed: Boolean(tx.status?.confirmed),
+    };
+  });
+}

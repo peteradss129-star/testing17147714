@@ -13,6 +13,7 @@
     "ecpair": "^3.0.2",
     "ethers": "^6.17.0",
     "expo": "~57.0.22",
+    "expo-camera": "^57.0.5",
     "expo-clipboard": "^57.0.2",
     "expo-crypto": "^57.0.3",
     "expo-local-authentication": "^57.0.3",

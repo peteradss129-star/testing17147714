@@ -9,9 +9,18 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSFaceIDUsageDescription": "Use Face ID to unlock your wallet and authorize transactions."
+        "NSFaceIDUsageDescription": "Use Face ID to unlock your wallet and authorize transactions.",
+        "NSCameraUsageDescription": "Used to scan QR codes for wallet addresses."
       }
     },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Used to scan QR codes for wallet addresses."
+        }
+      ]
+    ],
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",

@@ -14,6 +14,8 @@ import HomeScreen from '../screens/HomeScreen';
 import ReceiveScreen from '../screens/ReceiveScreen';
 import SendScreen from '../screens/SendScreen';
 import AddTokenScreen from '../screens/AddTokenScreen';
+import ScanQRScreen from '../screens/ScanQRScreen';
+import AssetHistoryScreen from '../screens/AssetHistoryScreen';
 
 export type RootStackParamList = {
   Welcome: undefined;
@@ -23,8 +25,12 @@ export type RootStackParamList = {
   SetPin: { mnemonic: string };
   Home: undefined;
   Receive: { isTestnet?: boolean } | undefined;
-  Send: { defaultChain?: ChainKey; isTestnet?: boolean; tokenAddress?: string } | undefined;
+  Send:
+    | { defaultChain?: ChainKey; isTestnet?: boolean; tokenAddress?: string; scannedAddress?: string }
+    | undefined;
   AddToken: { defaultChain?: ChainKey; isTestnet?: boolean } | undefined;
+  ScanQR: undefined;
+  AssetHistory: { chainKey: ChainKey; isTestnet: boolean; tokenAddress?: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -64,6 +70,8 @@ export default function RootNavigator() {
             <Stack.Screen name="Receive" component={ReceiveScreen} options={{ title: '' }} />
             <Stack.Screen name="Send" component={SendScreen} options={{ title: '' }} />
             <Stack.Screen name="AddToken" component={AddTokenScreen} options={{ title: '' }} />
+            <Stack.Screen name="ScanQR" component={ScanQRScreen} options={{ title: 'Scan QR code', headerTintColor: '#fff' }} />
+            <Stack.Screen name="AssetHistory" component={AssetHistoryScreen} options={{ title: '' }} />
           </>
         )}
       </Stack.Navigator>

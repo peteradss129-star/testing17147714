@@ -154,7 +154,7 @@ export default function HomeScreen({ navigation }: Props) {
           <TouchableOpacity
             key={chain.key}
             style={styles.chainRow}
-            onPress={() => navigation.navigate('Send', { defaultChain: chain.key, isTestnet })}
+            onPress={() => navigation.navigate('AssetHistory', { chainKey: chain.key, isTestnet })}
           >
             <View style={[styles.chainDot, { backgroundColor: chain.color }]} />
             <View style={styles.chainInfo}>
@@ -186,7 +186,9 @@ export default function HomeScreen({ navigation }: Props) {
           <TouchableOpacity
             key={tokenKey(token)}
             style={styles.chainRow}
-            onPress={() => navigation.navigate('Send', { defaultChain: token.chain, isTestnet, tokenAddress: token.address })}
+            onPress={() =>
+              navigation.navigate('AssetHistory', { chainKey: token.chain, isTestnet, tokenAddress: token.address })
+            }
           >
             <View style={[styles.chainDot, { backgroundColor: '#5A6172' }]} />
             <View style={styles.chainInfo}>
