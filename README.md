@@ -49,7 +49,7 @@ src/
     chains.ts       # chain configs (RPC URLs, chain IDs, explorers, faucets)
     wallet.ts       # mnemonic generation, HD derivation, balance/send logic
     erc20.ts        # ERC-20 metadata lookup, balance, and transfer
-    tokenStorage.ts # AsyncStorage list of custom tokens the user added
+    tokenStorage.ts # secure-store-backed list of custom tokens the user added
     storage.ts      # SecureStore wrapper (mnemonic, PIN hash)
     pin.ts          # PIN hashing/verification
   context/
