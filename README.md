@@ -7,19 +7,24 @@ and ethers.js — the same core approach used by wallets like Trust Wallet.
 
 - **Wallet creation & import**: BIP-39 mnemonic generation, BIP-44 HD key derivation
   (`m/44'/60'/0'/0/0`) via ethers.js
-- **Multi-chain support (EVM)**: Ethereum, BNB Smart Chain, and Polygon share one
-  address and one signing path — see `src/lib/chains.ts`
+- **Multi-chain support (EVM)**: Ethereum, BNB Smart Chain, and Polygon (plus their
+  Sepolia/BSC Testnet/Amoy testnets) share one address and one signing path — see
+  `src/lib/chains.ts`
+- **Testnet mode**: a toggle on the home screen switches all balances/sends between
+  mainnet and free testnets, for safe experimentation with faucet funds
 - **Secure key storage**: the mnemonic is stored via `expo-secure-store`, which uses
   the iOS Keychain / Android Keystore — never AsyncStorage, never sent to a server
 - **PIN lock**: a 6+ digit PIN (hashed with SHA-256) gates app unlock and every
   outgoing transaction
 - **Balances**: live native-token balances per chain via public RPC endpoints
-- **Send / Receive**: send native tokens with an on-chain transaction, receive via
-  address + QR code
+- **Custom ERC-20 tokens**: paste any token's contract address to look up its
+  symbol/decimals on-chain, track its balance, and send it — see `src/lib/erc20.ts`
+- **Send / Receive**: send native coins or tokens with an on-chain transaction,
+  receive via address + QR code
 
 ## What's out of scope for this MVP
 
-- ERC-20 / BEP-20 token balances and transfers (native coins only for now)
+- A curated/default token list (tokens must be added manually by contract address)
 - Bitcoin, Solana, or any non-EVM chain
 - WalletConnect / dApp browser
 - Biometric unlock (Face ID / fingerprint) — PIN only
@@ -41,13 +46,15 @@ one set up.
 ```
 src/
   lib/
-    chains.ts     # chain configs (RPC URLs, chain IDs, explorers)
-    wallet.ts     # mnemonic generation, HD derivation, balance/send logic
-    storage.ts    # SecureStore wrapper (mnemonic, PIN hash)
-    pin.ts        # PIN hashing/verification
+    chains.ts       # chain configs (RPC URLs, chain IDs, explorers, faucets)
+    wallet.ts       # mnemonic generation, HD derivation, balance/send logic
+    erc20.ts        # ERC-20 metadata lookup, balance, and transfer
+    tokenStorage.ts # AsyncStorage list of custom tokens the user added
+    storage.ts      # SecureStore wrapper (mnemonic, PIN hash)
+    pin.ts          # PIN hashing/verification
   context/
     WalletContext.tsx  # app-wide wallet state (locked/unlocked, address, mnemonic)
-  screens/        # onboarding, home, send, receive screens
+  screens/        # onboarding, home, send, receive, add-token screens
   navigation/      # stack navigator wiring
 ```
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   Alert,
   RefreshControl,
@@ -11,10 +11,13 @@ import {
   View,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useWallet } from '../context/WalletContext';
 import { MAINNET_CHAIN_LIST, TESTNET_CHAIN_LIST, ChainKey } from '../lib/chains';
 import { getBalance } from '../lib/wallet';
+import { getTokenBalance } from '../lib/erc20';
+import { getStoredTokens, StoredToken } from '../lib/tokenStorage';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
@@ -22,14 +25,20 @@ export default function HomeScreen({ navigation }: Props) {
   const { address, lock, resetWallet } = useWallet();
   const [isTestnet, setIsTestnet] = useState(true);
   const [balances, setBalances] = useState<Partial<Record<ChainKey, string>>>({});
+  const [tokens, setTokens] = useState<StoredToken[]>([]);
+  const [tokenBalances, setTokenBalances] = useState<Record<string, string>>({});
   const [refreshing, setRefreshing] = useState(false);
 
   const chainList = isTestnet ? TESTNET_CHAIN_LIST : MAINNET_CHAIN_LIST;
+  const chainKeysInScope = new Set(chainList.map((c) => c.key));
 
-  const fetchBalances = useCallback(async () => {
+  const tokenKey = (t: StoredToken) => `${t.chain}:${t.address.toLowerCase()}`;
+
+  const fetchAll = useCallback(async () => {
     if (!address) return;
+
     setBalances({});
-    const results = await Promise.all(
+    const balanceResults = await Promise.all(
       chainList.map(async (chain) => {
         try {
           const balance = await getBalance(address, chain.key);
@@ -40,16 +49,36 @@ export default function HomeScreen({ navigation }: Props) {
         }
       })
     );
-    setBalances(Object.fromEntries(results));
-  }, [address, chainList]);
+    setBalances(Object.fromEntries(balanceResults));
 
-  useEffect(() => {
-    fetchBalances();
-  }, [fetchBalances]);
+    const allTokens = await getStoredTokens();
+    const scopedTokens = allTokens.filter((t) => chainKeysInScope.has(t.chain));
+    setTokens(scopedTokens);
+
+    setTokenBalances({});
+    const tokenResults = await Promise.all(
+      scopedTokens.map(async (token) => {
+        try {
+          const balance = await getTokenBalance(token.chain, token.address, address, token.decimals);
+          return [tokenKey(token), balance] as const;
+        } catch (e) {
+          console.warn(`Failed to fetch ${token.symbol} balance:`, e);
+          return [tokenKey(token), 'error'] as const;
+        }
+      })
+    );
+    setTokenBalances(Object.fromEntries(tokenResults));
+  }, [address, isTestnet]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchAll();
+    }, [fetchAll])
+  );
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await fetchBalances();
+    await fetchAll();
     setRefreshing(false);
   };
 
@@ -141,6 +170,38 @@ export default function HomeScreen({ navigation }: Props) {
           </TouchableOpacity>
         ))}
 
+        <View style={styles.tokensHeader}>
+          <Text style={styles.sectionTitle}>Tokens</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('AddToken', { isTestnet })}>
+            <Text style={styles.addTokenLink}>+ Add token</Text>
+          </TouchableOpacity>
+        </View>
+
+        {tokens.length === 0 && (
+          <Text style={styles.emptyTokens}>No custom tokens added yet on the current network.</Text>
+        )}
+
+        {tokens.map((token) => (
+          <TouchableOpacity
+            key={tokenKey(token)}
+            style={styles.chainRow}
+            onPress={() => navigation.navigate('Send', { defaultChain: token.chain, isTestnet, tokenAddress: token.address })}
+          >
+            <View style={[styles.chainDot, { backgroundColor: '#5A6172' }]} />
+            <View style={styles.chainInfo}>
+              <Text style={styles.chainName}>{token.name}</Text>
+              <Text style={styles.chainSymbol}>{token.symbol}</Text>
+            </View>
+            <Text style={styles.chainBalance}>
+              {tokenBalances[tokenKey(token)] === undefined
+                ? '...'
+                : tokenBalances[tokenKey(token)] === 'error'
+                ? 'error'
+                : `${Number(tokenBalances[tokenKey(token)]).toFixed(4)} ${token.symbol}`}
+            </Text>
+          </TouchableOpacity>
+        ))}
+
         <TouchableOpacity style={styles.removeButton} onPress={handleReset}>
           <Text style={styles.removeButtonText}>Remove wallet from this device</Text>
         </TouchableOpacity>
@@ -181,6 +242,14 @@ const styles = StyleSheet.create({
   },
   actionButtonText: { color: '#fff', fontSize: 15, fontWeight: '600' },
   sectionTitle: { color: '#9AA3B2', fontSize: 13, fontWeight: '600', marginBottom: 12, textTransform: 'uppercase' },
+  tokensHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  addTokenLink: { color: '#627EEA', fontSize: 13, fontWeight: '600', marginBottom: 12 },
+  emptyTokens: { color: '#5A6172', fontSize: 13, marginBottom: 12 },
   chainRow: {
     flexDirection: 'row',
     alignItems: 'center',

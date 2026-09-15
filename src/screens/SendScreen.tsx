@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Linking,
@@ -15,20 +15,38 @@ import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useWallet } from '../context/WalletContext';
 import { MAINNET_CHAIN_LIST, TESTNET_CHAIN_LIST, CHAINS, ChainKey } from '../lib/chains';
 import { sendNativeToken } from '../lib/wallet';
+import { sendToken } from '../lib/erc20';
+import { getTokensForChain, StoredToken } from '../lib/tokenStorage';
 import { getPinHash } from '../lib/storage';
 import { verifyPin } from '../lib/pin';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Send'>;
+
+const NATIVE_ASSET = 'native';
 
 export default function SendScreen({ route }: Props) {
   const { mnemonic } = useWallet();
   const isTestnet = route.params?.isTestnet ?? true;
   const chainList = isTestnet ? TESTNET_CHAIN_LIST : MAINNET_CHAIN_LIST;
   const [chain, setChain] = useState<ChainKey>(route.params?.defaultChain ?? chainList[0].key);
+  const [tokens, setTokens] = useState<StoredToken[]>([]);
+  const [selectedAsset, setSelectedAsset] = useState<string>(route.params?.tokenAddress ?? NATIVE_ASSET);
   const [toAddress, setToAddress] = useState('');
   const [amount, setAmount] = useState('');
   const [pin, setPin] = useState('');
   const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    getTokensForChain(chain).then(setTokens);
+  }, [chain]);
+
+  const handleChainChange = (newChain: ChainKey) => {
+    setChain(newChain);
+    setSelectedAsset(NATIVE_ASSET);
+  };
+
+  const selectedToken = tokens.find((t) => t.address === selectedAsset);
+  const assetSymbol = selectedToken ? selectedToken.symbol : CHAINS[chain].symbol;
 
   const handleSend = async () => {
     if (!mnemonic) return;
@@ -44,7 +62,9 @@ export default function SendScreen({ route }: Props) {
 
     setSending(true);
     try {
-      const result = await sendNativeToken(mnemonic, chain, toAddress.trim(), amount.trim());
+      const result = selectedToken
+        ? await sendToken(mnemonic, chain, selectedToken.address, toAddress.trim(), amount.trim(), selectedToken.decimals)
+        : await sendNativeToken(mnemonic, chain, toAddress.trim(), amount.trim());
       Alert.alert('Transaction sent', `Hash: ${result.hash}`, [
         { text: 'View on explorer', onPress: () => Linking.openURL(CHAINS[chain].explorerTxUrl(result.hash)) },
         { text: 'OK' },
@@ -70,13 +90,36 @@ export default function SendScreen({ route }: Props) {
             <TouchableOpacity
               key={c.key}
               style={[styles.chainOption, chain === c.key && styles.chainOptionActive]}
-              onPress={() => setChain(c.key)}
+              onPress={() => handleChainChange(c.key)}
             >
               <View style={[styles.chainDot, { backgroundColor: c.color }]} />
               <Text style={styles.chainOptionText}>{c.symbol}</Text>
             </TouchableOpacity>
           ))}
         </View>
+
+        {tokens.length > 0 && (
+          <>
+            <Text style={styles.label}>Asset</Text>
+            <View style={styles.chainSelector}>
+              <TouchableOpacity
+                style={[styles.chainOption, selectedAsset === NATIVE_ASSET && styles.chainOptionActive]}
+                onPress={() => setSelectedAsset(NATIVE_ASSET)}
+              >
+                <Text style={styles.chainOptionText}>{CHAINS[chain].symbol}</Text>
+              </TouchableOpacity>
+              {tokens.map((t) => (
+                <TouchableOpacity
+                  key={t.address}
+                  style={[styles.chainOption, selectedAsset === t.address && styles.chainOptionActive]}
+                  onPress={() => setSelectedAsset(t.address)}
+                >
+                  <Text style={styles.chainOptionText}>{t.symbol}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        )}
 
         {CHAINS[chain].faucetUrl && (
           <TouchableOpacity
@@ -98,7 +141,7 @@ export default function SendScreen({ route }: Props) {
           autoCorrect={false}
         />
 
-        <Text style={styles.label}>Amount ({CHAINS[chain].symbol})</Text>
+        <Text style={styles.label}>Amount ({assetSymbol})</Text>
         <TextInput
           style={styles.input}
           value={amount}
@@ -132,7 +175,7 @@ const styles = StyleSheet.create({
   scroll: { padding: 24 },
   title: { fontSize: 24, fontWeight: '700', color: '#fff', marginBottom: 24 },
   label: { color: '#9AA3B2', fontSize: 13, marginBottom: 8, marginTop: 4 },
-  chainSelector: { flexDirection: 'row', gap: 10, marginBottom: 20 },
+  chainSelector: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
   chainOption: {
     flexDirection: 'row',
     alignItems: 'center',

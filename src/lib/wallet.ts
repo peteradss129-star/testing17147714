@@ -23,7 +23,7 @@ export function deriveAddress(mnemonic: string): string {
   return wallet.address;
 }
 
-function getProvider(chain: ChainKey): ethers.JsonRpcProvider {
+export function getProvider(chain: ChainKey): ethers.JsonRpcProvider {
   if (!providerCache[chain]) {
     // batchMaxCount: 1 disables JSON-RPC request batching — several public
     // RPC endpoints reject or mishandle batched ("[...]") request bodies.
@@ -38,7 +38,7 @@ function getProvider(chain: ChainKey): ethers.JsonRpcProvider {
   return providerCache[chain]!;
 }
 
-function getSigner(mnemonic: string, chain: ChainKey): ethers.HDNodeWallet {
+export function getSigner(mnemonic: string, chain: ChainKey): ethers.HDNodeWallet {
   const hdWallet = ethers.HDNodeWallet.fromPhrase(mnemonic.trim(), undefined, DERIVATION_PATH);
   return hdWallet.connect(getProvider(chain));
 }

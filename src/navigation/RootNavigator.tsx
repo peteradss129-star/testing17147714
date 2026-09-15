@@ -13,6 +13,7 @@ import UnlockScreen from '../screens/UnlockScreen';
 import HomeScreen from '../screens/HomeScreen';
 import ReceiveScreen from '../screens/ReceiveScreen';
 import SendScreen from '../screens/SendScreen';
+import AddTokenScreen from '../screens/AddTokenScreen';
 
 export type RootStackParamList = {
   Welcome: undefined;
@@ -22,7 +23,8 @@ export type RootStackParamList = {
   SetPin: { mnemonic: string };
   Home: undefined;
   Receive: undefined;
-  Send: { defaultChain?: ChainKey; isTestnet?: boolean } | undefined;
+  Send: { defaultChain?: ChainKey; isTestnet?: boolean; tokenAddress?: string } | undefined;
+  AddToken: { defaultChain?: ChainKey; isTestnet?: boolean } | undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -61,6 +63,7 @@ export default function RootNavigator() {
             <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
             <Stack.Screen name="Receive" component={ReceiveScreen} options={{ title: '' }} />
             <Stack.Screen name="Send" component={SendScreen} options={{ title: '' }} />
+            <Stack.Screen name="AddToken" component={AddTokenScreen} options={{ title: '' }} />
           </>
         )}
       </Stack.Navigator>
