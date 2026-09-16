@@ -49,3 +49,41 @@ export function formatFiat(amount: number, currency: 'usd' | 'inr'): string {
   const symbol = currency === 'usd' ? '$' : '₹';
   return `${symbol}${amount.toLocaleString(undefined, { maximumFractionDigits: amount < 1 ? 4 : 2 })}`;
 }
+
+export interface MarketCoin {
+  id: string;
+  symbol: string;
+  name: string;
+  image: string;
+  currentPrice: number;
+  priceChangePercentage24h: number | null;
+  marketCap: number;
+}
+
+let marketCache: { data: MarketCoin[]; timestamp: number } | null = null;
+
+export async function getTopCoins(perPage = 100): Promise<MarketCoin[]> {
+  const now = Date.now();
+  if (marketCache && now - marketCache.timestamp < CACHE_TTL_MS) {
+    return marketCache.data;
+  }
+
+  const res = await fetch(
+    `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${perPage}&page=1&sparkline=false`
+  );
+  if (!res.ok) throw new Error(`Failed to fetch market data (HTTP ${res.status})`);
+  const data = await res.json();
+
+  const coins: MarketCoin[] = data.map((c: any) => ({
+    id: c.id,
+    symbol: (c.symbol ?? '').toUpperCase(),
+    name: c.name,
+    image: c.image,
+    currentPrice: c.current_price ?? 0,
+    priceChangePercentage24h: c.price_change_percentage_24h,
+    marketCap: c.market_cap ?? 0,
+  }));
+
+  marketCache = { data: coins, timestamp: now };
+  return coins;
+}

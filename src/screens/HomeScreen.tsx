@@ -172,6 +172,9 @@ export default function HomeScreen({ navigation }: Props) {
           >
             <Text style={styles.actionButtonText}>Send</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Market')}>
+            <Text style={styles.actionButtonText}>Market</Text>
+          </TouchableOpacity>
         </View>
 
         <Text style={styles.sectionTitle}>Assets</Text>

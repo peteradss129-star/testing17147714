@@ -17,6 +17,7 @@ import SendScreen from '../screens/SendScreen';
 import AddTokenScreen from '../screens/AddTokenScreen';
 import ScanQRScreen from '../screens/ScanQRScreen';
 import AssetHistoryScreen from '../screens/AssetHistoryScreen';
+import MarketScreen from '../screens/MarketScreen';
 
 export type RootStackParamList = {
   Welcome: undefined;
@@ -25,6 +26,7 @@ export type RootStackParamList = {
   ImportWallet: undefined;
   SetPin: { mnemonic: string };
   Home: undefined;
+  Market: undefined;
   Receive: { isTestnet?: boolean } | undefined;
   Send:
     | { defaultChain?: ChainKey; isTestnet?: boolean; tokenAddress?: string; scannedAddress?: string }
@@ -75,6 +77,7 @@ export default function RootNavigator() {
         ) : (
           <>
             <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="Market" component={MarketScreen} options={{ title: '' }} />
             <Stack.Screen name="Receive" component={ReceiveScreen} options={{ title: '' }} />
             <Stack.Screen name="Send" component={SendScreen} options={{ title: '' }} />
             <Stack.Screen name="AddToken" component={AddTokenScreen} options={{ title: '' }} />
