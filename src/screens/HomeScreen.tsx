@@ -159,22 +159,29 @@ export default function HomeScreen({ navigation }: Props) {
           />
         </View>
 
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => navigation.navigate('Receive', { isTestnet })}
-          >
-            <Text style={styles.actionButtonText}>Receive</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => navigation.navigate('Send', { defaultChain: chainList[0].key, isTestnet })}
-          >
-            <Text style={styles.actionButtonText}>Send</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Market')}>
-            <Text style={styles.actionButtonText}>Market</Text>
-          </TouchableOpacity>
+        <View style={styles.actionsGrid}>
+          <View style={styles.actions}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => navigation.navigate('Receive', { isTestnet })}
+            >
+              <Text style={styles.actionButtonText}>Receive</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => navigation.navigate('Send', { defaultChain: chainList[0].key, isTestnet })}
+            >
+              <Text style={styles.actionButtonText}>Send</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.actions}>
+            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Swap')}>
+              <Text style={styles.actionButtonText}>Swap</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Market')}>
+              <Text style={styles.actionButtonText}>Market</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <Text style={styles.sectionTitle}>Assets</Text>
@@ -283,7 +290,8 @@ function createStyles(colors: ThemeColors) {
     },
     networkToggleTitle: { color: colors.textPrimary, fontSize: 14, fontWeight: '600' },
     networkToggleSubtitle: { color: colors.textSecondary, fontSize: 12, marginTop: 2 },
-    actions: { flexDirection: 'row', gap: 12, marginBottom: 32 },
+    actionsGrid: { gap: 12, marginBottom: 32 },
+    actions: { flexDirection: 'row', gap: 12 },
     actionButton: {
       flex: 1,
       backgroundColor: colors.surface,

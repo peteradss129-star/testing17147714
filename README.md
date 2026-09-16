@@ -55,6 +55,12 @@ and ethers.js — the same core approach used by wallets like Trust Wallet.
 - **Coin detail chart**: tapping a coin opens an interactive price chart
   (1D/7D/1M/1Y) with touch-drag crosshair scrubbing — `src/components/PriceChart.tsx`,
   `src/screens/CoinDetailScreen.tsx`
+- **Swap (EVM mainnet only)**: swap native coins/tokens directly against
+  on-chain Uniswap V2 / PancakeSwap V2 / QuickSwap routers — no aggregator API
+  or key. Shows a live quote, price impact (via pool reserves), and
+  slippage-tolerance selector; handles the ERC-20 approval step (exact amount,
+  not unlimited) automatically before the swap. Disabled on testnet — those
+  DEX deployments don't have reliable liquidity — see `src/lib/swap.ts`
 - **Dark/light theme**: a toggle on the home screen switches themes instantly,
   persisted across launches — `src/context/ThemeContext.tsx` provides the
   palette every screen reads from
@@ -101,14 +107,17 @@ src/
     pin.ts          # PIN hashing/verification
     pinAuth.ts      # PIN check with failed-attempt lockout, shared by unlock + send
     biometrics.ts   # Face ID / fingerprint helpers (expo-local-authentication)
-    priceService.ts # CoinGecko fiat price lookup for native coins
+    priceService.ts # CoinGecko fiat prices, top-coins market list, price charts
+    swap.ts         # EVM mainnet swap via on-chain Uniswap V2-style routers
   context/
     WalletContext.tsx  # app-wide wallet state (locked/unlocked, address, mnemonic)
     ThemeContext.tsx   # dark/light palette + toggle, persisted via SecureStore
   components/
     SkeletonBox.tsx    # animated loading placeholder used across screens
+    Sparkline.tsx      # bare list-row trend line (react-native-svg)
+    PriceChart.tsx     # interactive area/line chart with crosshair scrubbing
   screens/        # onboarding, home, send, receive, add-token, scan-qr,
-                  # asset-history screens
+                  # asset-history, market, coin-detail, swap screens
   navigation/      # stack navigator wiring
 ```
 
@@ -129,3 +138,6 @@ value into it:
 - Consider adding jailbreak/root detection and certificate pinning for RPC calls
 - Consider an idle/inactivity timeout in addition to the background lock, and a
   "wipe after N failed PIN attempts" option for lost-device scenarios
+- Swap warns (and requires an extra "Swap anyway" tap) above 10% price impact,
+  but there's no hard block or minimum-liquidity check — a thin or fake pool
+  can still be swapped into if the user pushes through the warning
