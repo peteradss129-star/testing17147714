@@ -55,6 +55,10 @@ and ethers.js — the same core approach used by wallets like Trust Wallet.
 - **Skeleton loading states**: balances and transaction history show animated
   placeholder shapes while loading instead of a bare "..." —
   `src/components/SkeletonBox.tsx`
+- **Custom app icon & splash screen**: a three-circle "multi-chain" mark
+  (Ethereum blue, BSC gold, Polygon purple) replaces the default Expo icon,
+  with matching Android adaptive-icon and monochrome variants and a splash
+  screen via `expo-splash-screen`
 
 ## What's out of scope for this MVP
 
