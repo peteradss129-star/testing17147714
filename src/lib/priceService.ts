@@ -58,6 +58,7 @@ export interface MarketCoin {
   currentPrice: number;
   priceChangePercentage24h: number | null;
   marketCap: number;
+  sparkline7d: number[];
 }
 
 let marketCache: { data: MarketCoin[]; timestamp: number } | null = null;
@@ -69,7 +70,7 @@ export async function getTopCoins(perPage = 100): Promise<MarketCoin[]> {
   }
 
   const res = await fetch(
-    `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${perPage}&page=1&sparkline=false`
+    `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${perPage}&page=1&sparkline=true`
   );
   if (!res.ok) throw new Error(`Failed to fetch market data (HTTP ${res.status})`);
   const data = await res.json();
@@ -82,8 +83,49 @@ export async function getTopCoins(perPage = 100): Promise<MarketCoin[]> {
     currentPrice: c.current_price ?? 0,
     priceChangePercentage24h: c.price_change_percentage_24h,
     marketCap: c.market_cap ?? 0,
+    sparkline7d: c.sparkline_in_7d?.price ?? [],
   }));
 
   marketCache = { data: coins, timestamp: now };
   return coins;
+}
+
+export type ChartRange = '1D' | '7D' | '1M' | '1Y';
+
+const RANGE_TO_DAYS: Record<ChartRange, number> = {
+  '1D': 1,
+  '7D': 7,
+  '1M': 30,
+  '1Y': 365,
+};
+
+export interface PricePoint {
+  timestamp: number;
+  price: number;
+}
+
+const chartCache = new Map<string, { data: PricePoint[]; timestamp: number }>();
+
+export async function getCoinChart(coinId: string, range: ChartRange): Promise<PricePoint[]> {
+  const cacheKey = `${coinId}:${range}`;
+  const now = Date.now();
+  const cached = chartCache.get(cacheKey);
+  if (cached && now - cached.timestamp < CACHE_TTL_MS) {
+    return cached.data;
+  }
+
+  const days = RANGE_TO_DAYS[range];
+  const res = await fetch(
+    `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`
+  );
+  if (!res.ok) throw new Error(`Failed to fetch chart data (HTTP ${res.status})`);
+  const data = await res.json();
+
+  const points: PricePoint[] = (data.prices ?? []).map(([timestamp, price]: [number, number]) => ({
+    timestamp,
+    price,
+  }));
+
+  chartCache.set(cacheKey, { data: points, timestamp: now });
+  return points;
 }

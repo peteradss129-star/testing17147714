@@ -1,12 +1,17 @@
 import React, { useCallback, useState } from 'react';
-import { Image, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useTheme, ThemeColors } from '../context/ThemeContext';
 import { getTopCoins, formatFiat, MarketCoin } from '../lib/priceService';
 import SkeletonBox from '../components/SkeletonBox';
+import Sparkline from '../components/Sparkline';
 
-export default function MarketScreen() {
+type Props = NativeStackScreenProps<RootStackParamList, 'Market'>;
+
+export default function MarketScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
   const [coins, setCoins] = useState<MarketCoin[] | null>(null);
@@ -64,12 +69,28 @@ export default function MarketScreen() {
           const change = coin.priceChangePercentage24h;
           const isUp = (change ?? 0) >= 0;
           return (
-            <View key={coin.id} style={styles.row}>
+            <TouchableOpacity
+              key={coin.id}
+              style={styles.row}
+              onPress={() =>
+                navigation.navigate('CoinDetail', {
+                  coinId: coin.id,
+                  name: coin.name,
+                  symbol: coin.symbol,
+                  image: coin.image,
+                  currentPrice: coin.currentPrice,
+                  priceChangePercentage24h: coin.priceChangePercentage24h,
+                })
+              }
+            >
               <Image source={{ uri: coin.image }} style={styles.coinImage} />
               <View style={styles.info}>
                 <Text style={styles.name}>{coin.name}</Text>
                 <Text style={styles.symbol}>{coin.symbol}</Text>
               </View>
+              {coin.sparkline7d.length > 1 && (
+                <Sparkline data={coin.sparkline7d} width={64} height={32} />
+              )}
               <View style={styles.priceBlock}>
                 <Text style={styles.price}>{formatFiat(coin.currentPrice, 'usd')}</Text>
                 {change !== null && (
@@ -79,7 +100,7 @@ export default function MarketScreen() {
                   </Text>
                 )}
               </View>
-            </View>
+            </TouchableOpacity>
           );
         })}
       </ScrollView>
@@ -106,7 +127,7 @@ function createStyles(colors: ThemeColors) {
     info: { flex: 1 },
     name: { color: colors.textPrimary, fontSize: 14, fontWeight: '600' },
     symbol: { color: colors.textSecondary, fontSize: 12, marginTop: 2 },
-    priceBlock: { alignItems: 'flex-end' },
+    priceBlock: { alignItems: 'flex-end', minWidth: 78 },
     price: { color: colors.textPrimary, fontSize: 14, fontWeight: '600' },
     change: { fontSize: 12, fontWeight: '600', marginTop: 2 },
   });

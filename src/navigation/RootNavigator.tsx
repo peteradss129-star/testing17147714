@@ -18,6 +18,7 @@ import AddTokenScreen from '../screens/AddTokenScreen';
 import ScanQRScreen from '../screens/ScanQRScreen';
 import AssetHistoryScreen from '../screens/AssetHistoryScreen';
 import MarketScreen from '../screens/MarketScreen';
+import CoinDetailScreen from '../screens/CoinDetailScreen';
 
 export type RootStackParamList = {
   Welcome: undefined;
@@ -27,6 +28,14 @@ export type RootStackParamList = {
   SetPin: { mnemonic: string };
   Home: undefined;
   Market: undefined;
+  CoinDetail: {
+    coinId: string;
+    name: string;
+    symbol: string;
+    image: string;
+    currentPrice: number;
+    priceChangePercentage24h: number | null;
+  };
   Receive: { isTestnet?: boolean } | undefined;
   Send:
     | { defaultChain?: ChainKey; isTestnet?: boolean; tokenAddress?: string; scannedAddress?: string }
@@ -78,6 +87,7 @@ export default function RootNavigator() {
           <>
             <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
             <Stack.Screen name="Market" component={MarketScreen} options={{ title: '' }} />
+            <Stack.Screen name="CoinDetail" component={CoinDetailScreen} options={{ title: '' }} />
             <Stack.Screen name="Receive" component={ReceiveScreen} options={{ title: '' }} />
             <Stack.Screen name="Send" component={SendScreen} options={{ title: '' }} />
             <Stack.Screen name="AddToken" component={AddTokenScreen} options={{ title: '' }} />

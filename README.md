@@ -49,8 +49,12 @@ and ethers.js — the same core approach used by wallets like Trust Wallet.
 - **Live USD/INR pricing**: native-coin balances show their fiat value
   (CoinGecko, mainnet only — testnet coins have no real price) —
   `src/lib/priceService.ts`
-- **Market screen**: top 100 coins by market cap with live USD price and 24h
-  change, reachable from the home screen (`src/screens/MarketScreen.tsx`)
+- **Market screen**: top 100 coins by market cap with live USD price, 24h
+  change, and a 7-day sparkline per row, reachable from the home screen
+  (`src/screens/MarketScreen.tsx`)
+- **Coin detail chart**: tapping a coin opens an interactive price chart
+  (1D/7D/1M/1Y) with touch-drag crosshair scrubbing — `src/components/PriceChart.tsx`,
+  `src/screens/CoinDetailScreen.tsx`
 - **Dark/light theme**: a toggle on the home screen switches themes instantly,
   persisted across launches — `src/context/ThemeContext.tsx` provides the
   palette every screen reads from
